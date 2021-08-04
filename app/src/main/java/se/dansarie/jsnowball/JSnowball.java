@@ -51,5 +51,7 @@ public class JSnowball {
     mainframe.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     mainframe.setSize(1024, 768);
     mainframe.setVisible(true);
+
+    Article.fromDoi("10.1016/0167-4048(88)90003-X");
   }
 }
