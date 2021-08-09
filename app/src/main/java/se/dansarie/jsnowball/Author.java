@@ -1,14 +1,13 @@
 package se.dansarie.jsnowball;
 
-public class Author {
+public class Author extends SnowballStateMember {
   private String firstname;
   private String lastname;
   private String orgname;
   private String orcid;
 
-  public Author(String first, String last) {
-    firstname = first;
-    lastname = last;
+  public Author(SnowballState state) {
+    super(state);
   }
 
   public String getFirstName() {
@@ -41,5 +40,27 @@ public class Author {
 
   public void setOrcId(String id) {
     orcid = id;
+  }
+
+  @Override
+  public int compareTo(SnowballStateMember other) {
+    Author o = (Author)other;
+    if (getLastName() == null) {
+      if (o.getLastName() == null) {
+        return 0;
+      }
+      return -1;
+    }
+    int ret = getLastName().compareTo(o.getLastName());
+    if (ret != 0) {
+      return ret;
+    }
+    if (getFirstName() == null) {
+      if (o.getFirstName() == null) {
+        return 0;
+      }
+      return -1;
+    }
+    return getFirstName().compareTo(o.getFirstName());
   }
 }
