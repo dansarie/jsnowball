@@ -11,6 +11,13 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.swing.ListModel;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 
 public class Article extends SnowballStateMember {
 
@@ -23,9 +30,9 @@ public class Article extends SnowballStateMember {
   private String volume = null;
   private String issue = null;
   private String pages = null;
+  private ArticleAuthorsListModel authorsListModel = new ArticleAuthorsListModel();
 
-  public Article(SnowballState state) {
-    super(state);
+  Article() {
   }
 
   public String getDoi() {
@@ -62,34 +69,42 @@ public class Article extends SnowballStateMember {
 
   public void setDoi(String doi) {
     this.doi = doi;
+    state.updated(this);
   }
 
   public void setJournal(Journal journal) {
     this.journal = journal;
+    state.updated(this);
   }
 
   public void setTitle(String title) {
     this.title = title;
+    state.updated(this);
   }
 
   public void setYear(String year) {
     this.year = year;
+    state.updated(this);
   }
 
   public void setMonth(String month) {
     this.month = month;
+    state.updated(this);
   }
 
   public void setVolume(String volume) {
     this.volume = volume;
+    state.updated(this);
   }
 
   public void setIssue(String issue) {
     this.issue = issue;
+    state.updated(this);
   }
 
   public void setPages(String pages) {
     this.pages = pages;
+    state.updated(this);
   }
 
   public void addAuthor(Author author) {
@@ -98,14 +113,26 @@ public class Article extends SnowballStateMember {
     }
     if (!authors.contains(author)) {
       authors.add(author);
+      int idx = authors.indexOf(author);
+      authorsListModel.fireAdded(idx);
+      state.updated(this);
     }
   }
 
   public void removeAuthor(Author author) {
-    authors.remove(author);
+    int idx = authors.indexOf(author);
+    if (idx >= 0) {
+      authors.remove(author);
+      authorsListModel.fireRemoved(idx);
+      state.updated(this);
+    }
   }
 
-  public static Article fromDoi(SnowballState state, String doi) {
+  public ListModel<String> getAuthorsListModel() {
+    return authorsListModel;
+  }
+
+  static Article fromDoi(SnowballState state, String doi) {
     InputStream stream = null;
     Article art = null;
     try {
@@ -113,6 +140,7 @@ public class Article extends SnowballStateMember {
       URL url = new URL("https://doi.org/" + doi);
       URLConnection connection = url.openConnection();
       connection.setRequestProperty("Accept", "application/vnd.citationstyles.csl+json");
+      connection.setRequestProperty("User-Agent", "JSnowball (mailto:marcus@dansarie.se)");
       stream = (InputStream)connection.getContent();
       String doidata = new String(stream.readAllBytes(), "UTF-8");
       System.out.println(doidata);
@@ -169,7 +197,7 @@ public class Article extends SnowballStateMember {
       pages = jsonroot.getAsJsonPrimitive("page").getAsString();
     }
 
-    Article art = new Article(state);
+    Article art = state.createArticle();
     art.setTitle(title);
     art.setYear(year);
     art.setMonth(month);
@@ -229,6 +257,53 @@ public class Article extends SnowballStateMember {
       }
       return -1;
     }
-    return getTitle().compareTo(o.getTitle());
+    if (o.getTitle() == null) {
+      return 1;
+    }
+    return getTitle().compareToIgnoreCase(o.getTitle());
+  }
+
+  @Override
+  public String toString() {
+    return getTitle();
+  }
+
+  private class ArticleAuthorsListModel implements ListModel<String> {
+    private Set<ListDataListener> listeners = new HashSet<>();
+
+    @Override
+    public String getElementAt(int idx) {
+      Author a = authors.get(idx);
+      return a.getLastName() + ", " + a.getFirstName();
+    }
+
+    @Override
+    public int getSize() {
+      return authors.size();
+    }
+
+    @Override
+    public void addListDataListener(ListDataListener li) {
+      listeners.add(Objects.requireNonNull(li));
+    }
+
+    @Override
+    public void removeListDataListener(ListDataListener li) {
+      listeners.remove(li);
+    }
+
+    private void fireAdded(int idx) {
+      ListDataEvent ev = new ListDataEvent(this, ListDataEvent.INTERVAL_ADDED, idx, idx);
+      for (ListDataListener li : listeners) {
+        li.intervalAdded(ev);
+      }
+    }
+
+    private void fireRemoved(int idx) {
+      ListDataEvent ev = new ListDataEvent(this, ListDataEvent.INTERVAL_REMOVED, idx, idx);
+      for (ListDataListener li : listeners) {
+        li.intervalRemoved(ev);
+      }
+    }
   }
 }

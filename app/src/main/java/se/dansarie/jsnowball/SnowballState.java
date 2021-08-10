@@ -15,10 +15,10 @@ public class SnowballState {
   private List<Author> authors = new ArrayList<>();
   private List<Journal> journals = new ArrayList<>();
 
-  private SnowballListModel articleListModel = new SnowballListModel() {
+  private SnowballListModel<Article> articleListModel = new SnowballListModel<Article>() {
     @Override
-    public String getElementAt(int idx) {
-      return articles.get(idx).getTitle();
+    public Article getElementAt(int idx) {
+      return articles.get(idx);
     }
 
     @Override
@@ -27,11 +27,11 @@ public class SnowballState {
     }
   };
 
-  private SnowballListModel authorListModel = new SnowballListModel() {
+  private SnowballListModel<Author> authorListModel = new SnowballListModel<Author>() {
     @Override
-    public String getElementAt(int idx) {
-      Author a = authors.get(idx);
-      return a.getLastName() + ", " + a.getFirstName();
+    public Author getElementAt(int idx) {
+      return authors.get(idx);
+      //return a.getLastName() + ", " + a.getFirstName();
     }
 
     @Override
@@ -40,10 +40,10 @@ public class SnowballState {
     }
   };
 
-  private SnowballListModel journalListModel = new SnowballListModel() {
+  private SnowballListModel<Journal> journalListModel = new SnowballListModel<Journal>() {
     @Override
-    public String getElementAt(int idx) {
-      return journals.get(idx).getName();
+    public Journal getElementAt(int idx) {
+      return journals.get(idx);
     }
 
     @Override
@@ -52,26 +52,31 @@ public class SnowballState {
     }
   };
 
-  public void articleFromDoi(String doi) {
-
+  public Article createArticle() {
+    Article art = new Article();
+    art.setState(this);
+    articles.add(art);
+    Collections.sort(articles);
+    articleListModel.fireAdded(articles.indexOf(art));
+    return art;
   }
 
-  void addmember(SnowballStateMember m) {
-    if (m instanceof Article) {
-      articles.add((Article)m);
-      Collections.sort(articles);
-      articleListModel.fireAdded(articles.indexOf(m));
-    } else if (m instanceof Author) {
-      authors.add((Author)m);
-      Collections.sort(authors);
-      authorListModel.fireAdded(authors.indexOf(m));
-    } else if (m instanceof Journal) {
-      journals.add((Journal)m);
-      Collections.sort(journals);
-      journalListModel.fireAdded(journals.indexOf(m));
-    } else {
-      throw new IllegalArgumentException();
-    }
+  public Author createAuthor() {
+    Author au = new Author();
+    au.setState(this);
+    authors.add(au);
+    Collections.sort(authors);
+    authorListModel.fireAdded(authors.indexOf(au));
+    return au;
+  }
+
+  public Journal createJournal() {
+    Journal jo = new Journal();
+    jo.setState(this);
+    journals.add(jo);
+    Collections.sort(journals);
+    journalListModel.fireAdded(journals.indexOf(jo));
+    return jo;
   }
 
   public Author getAuthorFromStrings(String firstName, String lastName) {
@@ -81,7 +86,7 @@ public class SnowballState {
         return a;
       }
     }
-    Author a = new Author(this);
+    Author a = createAuthor();
     a.setFirstName(firstName);
     a.setLastName(lastName);
     return a;
@@ -93,7 +98,7 @@ public class SnowballState {
         return j;
       }
     }
-    Journal j = new Journal(this);
+    Journal j = createJournal();
     j.setName(name);
     return j;
   }
@@ -104,7 +109,7 @@ public class SnowballState {
         return j;
       }
     }
-    Journal j = new Journal(this);
+    Journal j = createJournal();
     j.setIssn(issn);
     return j;
   }
@@ -121,19 +126,43 @@ public class SnowballState {
     return Collections.unmodifiableList(journals);
   }
 
-  public ListModel<String> getArticleListModel() {
+  public ListModel<Article> getArticleListModel() {
     return articleListModel;
   }
 
-  public ListModel<String> getAuthorListModel() {
+  public ListModel<Author> getAuthorListModel() {
     return authorListModel;
   }
 
-  public ListModel<String> getJournalListModel() {
+  public ListModel<Journal> getJournalListModel() {
     return journalListModel;
   }
 
-  private abstract class SnowballListModel implements ListModel<String> {
+  void updated(Article art) {
+    int idx = articles.indexOf(art);
+    if (idx >= 0) {
+      Collections.sort(articles);
+      articleListModel.fireChanged(0, articles.size() - 1);
+    }
+  }
+
+  void updated(Author au) {
+    int idx = authors.indexOf(au);
+    if (idx >= 0) {
+      Collections.sort(authors);
+      authorListModel.fireChanged(0, authors.size() - 1);
+    }
+  }
+
+  void updated(Journal jo) {
+    int idx = journals.indexOf(jo);
+    if (idx >= 0) {
+      Collections.sort(journals);
+      journalListModel.fireChanged(0, journals.size() - 1);
+    }
+  }
+
+  private abstract class SnowballListModel<E> implements ListModel<E> {
     private Set<ListDataListener> listeners = new HashSet<>();
 
     @Override
@@ -150,6 +179,13 @@ public class SnowballState {
       ListDataEvent ev = new ListDataEvent(this, ListDataEvent.INTERVAL_ADDED, idx, idx);
       for (ListDataListener li : listeners) {
         li.intervalAdded(ev);
+      }
+    }
+
+    private void fireChanged(int lo, int hi) {
+      ListDataEvent ev = new ListDataEvent(this, ListDataEvent.CONTENTS_CHANGED, lo, hi);
+      for (ListDataListener li : listeners) {
+        li.contentsChanged(ev);
       }
     }
   }

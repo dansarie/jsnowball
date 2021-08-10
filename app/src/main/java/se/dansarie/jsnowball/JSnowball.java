@@ -14,6 +14,8 @@ import javax.swing.JTabbedPane;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -27,7 +29,7 @@ public class JSnowball {
     JMenuItem exititem = new JMenuItem("Exit");
     exititem.addActionListener(new ActionListener() {
       @Override
-      public void actionPerformed(ActionEvent e) {
+      public void actionPerformed(ActionEvent ev) {
         mainframe.setVisible(false);
         mainframe.dispose();
       }
@@ -39,11 +41,10 @@ public class JSnowball {
     filemenu.add(exititem);
 
     JMenu operationsMenu = new JMenu("Operations");
-    JMenu addArticleMenu = new JMenu("Add article");
-    JMenuItem addArticleDoi = new JMenuItem("From DOI...");
+    JMenuItem addArticleDoi = new JMenuItem("Add article from DOI...");
     addArticleDoi.addActionListener(new ActionListener() {
       @Override
-      public void actionPerformed(ActionEvent evt) {
+      public void actionPerformed(ActionEvent ev) {
         String doi = JOptionPane.showInputDialog(mainframe, "Enter a DOI",
             "Create article from DOI", JOptionPane.QUESTION_MESSAGE);
         if (doi == null) {
@@ -52,13 +53,14 @@ public class JSnowball {
         Article.fromDoi(state, doi);
       }
     });
-    JMenuItem addArticleManually = new JMenuItem("Manually...");
-    addArticleMenu.add(addArticleDoi);
-    addArticleMenu.add(addArticleManually);
-    JMenuItem addAuthorItem = new JMenuItem("Add author...");
-    JMenuItem addJournalItem = new JMenuItem("Add journal...");
-    operationsMenu.add(addArticleMenu);
+    JMenuItem addArticleManually = new JMenuItem("New article");
+    JMenuItem addAuthorItem = new JMenuItem("New author");
+    JMenuItem addJournalItem = new JMenuItem("New journal");
+    operationsMenu.add(addArticleManually);
+    operationsMenu.add(addArticleDoi);
+    operationsMenu.addSeparator();
     operationsMenu.add(addAuthorItem);
+    operationsMenu.addSeparator();
     operationsMenu.add(addJournalItem);
 
     JMenuItem aboutitem = new JMenuItem("About JSnowball...");
@@ -78,9 +80,21 @@ public class JSnowball {
 
     mainframe.setJMenuBar(menubar);
 
-    JList<String> articleList = new JList<>(state.getArticleListModel());
-    JList<String> authorList = new JList<>(state.getAuthorListModel());
-    JList<String> journalList = new JList<>(state.getJournalListModel());
+    JList<Article> articleList = new JList<>(state.getArticleListModel());
+    JList<Author> authorList = new JList<>(state.getAuthorListModel());
+    JList<Journal> journalList = new JList<>(state.getJournalListModel());
+
+    // ListSelectionWatcher<Article> articleSelectionWatcher = new ListSelectionWatcher<>(articleList);
+    // articleList.addListSelectionListener(articleSelectionWatcher);
+    // state.getArticleListModel().addListDataListener(articleSelectionWatcher);
+
+    // ListSelectionWatcher<Author> authorSelectionWatcher = new ListSelectionWatcher<>(authorList);
+    // authorList.addListSelectionListener(authorSelectionWatcher);
+    // state.getAuthorListModel().addListDataListener(authorSelectionWatcher);
+
+    // ListSelectionWatcher<Journal> journalSelectionWatcher = new ListSelectionWatcher<>(journalList);
+    // journalList.addListSelectionListener(journalSelectionWatcher);
+    // state.getJournalListModel().addListDataListener(journalSelectionWatcher);
 
     JTabbedPane tabbedpane = new JTabbedPane(JTabbedPane.TOP);
     tabbedpane.addTab("Articles", new JScrollPane(articleList));
@@ -117,27 +131,73 @@ public class JSnowball {
     articleList.addListSelectionListener(new ListSelectionListener() {
       @Override
       public void valueChanged(ListSelectionEvent ev) {
-        articlePanel.setItem(state.getArticleList().get(articleList.getSelectedIndex()));
+        int idx = articleList.getSelectedIndex();
+        if (idx < 0) {
+          articlePanel.setItem(null);
+        } else {
+          articlePanel.setItem(state.getArticleList().get(idx));
+        }
       }
     });
 
     authorList.addListSelectionListener(new ListSelectionListener() {
       @Override
       public void valueChanged(ListSelectionEvent ev) {
-        int idx = ev.getFirstIndex();
-        System.out.println(idx);
-        authorPanel.setItem(state.getAuthorList().get(authorList.getSelectedIndex()));
+        int idx = authorList.getSelectedIndex();
+        if (idx < 0) {
+          authorPanel.setItem(null);
+        } else {
+          authorPanel.setItem(state.getAuthorList().get(idx));
+        }
       }
     });
 
     journalList.addListSelectionListener(new ListSelectionListener() {
       @Override
       public void valueChanged(ListSelectionEvent ev) {
-        int idx = ev.getFirstIndex();
-        System.out.println(idx);
-        journalPanel.setItem(state.getJournalList().get(journalList.getSelectedIndex()));
+        int idx = journalList.getSelectedIndex();
+        if (idx < 0) {
+          journalPanel.setItem(null);
+        } else {
+          journalPanel.setItem(state.getJournalList().get(idx));
+        }
       }
     });
+
+    addArticleManually.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent ev) {
+        Article art = state.createArticle();
+        art.setTitle("New article");
+        tabbedpane.setSelectedIndex(0);
+        articleList.setSelectedIndex(state.getArticleList().indexOf(art));
+      }
+    });
+
+    addAuthorItem.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent ev) {
+        Author au = state.createAuthor();
+        au.setState(state);
+        au.setLastName("New");
+        au.setFirstName("Author");
+        tabbedpane.setSelectedIndex(1);
+        authorList.setSelectedIndex(state.getAuthorList().indexOf(au));
+      }
+    });
+
+    addJournalItem.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent ev) {
+        Journal jo = state.createJournal();
+        jo.setState(state);
+        jo.setName("New journal");
+        tabbedpane.setSelectedIndex(2);
+        journalList.setSelectedIndex(state.getJournalList().indexOf(jo));
+      }
+    });
+
+    state.getJournalListModel().addListDataListener(articlePanel);
 
     mainframe.getContentPane().add(splitpane);
 
@@ -145,7 +205,45 @@ public class JSnowball {
     mainframe.setSize(1024, 768);
     mainframe.setVisible(true);
 
-    Article.fromDoi(state, "10.1016/0167-4048(88)90003-X");
-    Article.fromDoi(state, "10.21105/joss.02946");
+    //Article.fromDoi(state, "10.1016/0167-4048(88)90003-X");
+    //Article.fromDoi(state, "10.21105/joss.02946");
+    //Article.fromDoi(state, "10.1007/3-540-48519-8_18");
+  }
+
+  private static class ListSelectionWatcher<E> implements ListDataListener, ListSelectionListener {
+    private E selected = null;
+    private JList<E> list;
+
+    private ListSelectionWatcher(JList<E> list) {
+      this.list = list;
+    }
+
+    private void updateSelection() {
+      list.setSelectedValue(selected, true);
+      String str = selected == null ? "null" : selected.toString();
+      System.out.println("Updated: " + str);
+    }
+
+    @Override
+    public void contentsChanged(ListDataEvent ev) {
+      updateSelection();
+    }
+
+    @Override
+    public void intervalAdded(ListDataEvent ev) {
+      updateSelection();
+    }
+
+    @Override
+    public void intervalRemoved(ListDataEvent ev) {
+      updateSelection();
+    }
+
+    @Override
+    public void valueChanged(ListSelectionEvent ev) {
+      selected = list.getSelectedValue();
+      String str = selected == null ? "null" : selected.toString();
+      System.out.println("Selected: " + str);
+    }
   }
 }

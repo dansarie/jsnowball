@@ -4,8 +4,7 @@ public class Journal extends SnowballStateMember {
   private String name;
   private String issn;
 
-  public Journal(SnowballState state) {
-    super(state);
+  Journal() {
   }
 
   public String getIssn() {
@@ -18,10 +17,12 @@ public class Journal extends SnowballStateMember {
 
   public void setName(String name) {
     this.name = name;
+    state.updated(this);
   }
 
   public void setIssn(String issn) {
     this.issn = issn;
+    state.updated(this);
   }
 
   @Override
@@ -33,6 +34,14 @@ public class Journal extends SnowballStateMember {
       }
       return -1;
     }
-    return getName().compareTo(o.getName());
+    if (o.getName() == null) {
+      return 1;
+    }
+    return getName().compareToIgnoreCase(o.getName());
+  }
+
+  @Override
+  public String toString() {
+    return getName();
   }
 }
