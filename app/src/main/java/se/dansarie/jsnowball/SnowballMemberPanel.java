@@ -2,12 +2,14 @@ package se.dansarie.jsnowball;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JPanel;
 import javax.swing.event.DocumentEvent;
@@ -22,10 +24,12 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
   protected GridBagConstraints gb = new GridBagConstraints();
   private List<String> captions = new ArrayList<String>();
   private List<JComponent> components = new ArrayList<JComponent>();
+  protected boolean updating = false;
 
   SnowballMemberPanel() {
     setLayout(new GridBagLayout());
     gb.gridy = 0;
+    gb.insets = new Insets(5, 5, 5, 5);
   }
 
   protected void addComponent(String caption, JComponent comp) {
@@ -37,19 +41,23 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
       childComp = (JComponent)(((JScrollPane)comp).getViewport().getView());
     }
 
-    if (childComp instanceof JTextComponent) {
-      JTextComponent tc = (JTextComponent)childComp;
-      Document doc = tc.getDocument();
-      doc.addDocumentListener(this);
-      doc.putProperty("parentcomponent", tc);
-    }
-
     gb.fill = GridBagConstraints.NONE;
     gb.anchor = GridBagConstraints.NORTHEAST;
     gb.gridx = 0;
     gb.weightx = 0;
     add(new JLabel(caption), gb);
+
+    gb.weighty = 0;
     gb.fill = GridBagConstraints.HORIZONTAL;
+    if (childComp instanceof JTextComponent) {
+      JTextComponent tc = (JTextComponent)childComp;
+      Document doc = tc.getDocument();
+      doc.addDocumentListener(this);
+      doc.putProperty("parentcomponent", tc);
+    } else if (childComp instanceof JList) {
+      gb.weighty = 1;
+      gb.fill = GridBagConstraints.BOTH;
+    }
     gb.anchor = GridBagConstraints.NORTHWEST;
     gb.gridx = 1;
     gb.weightx = 1;
@@ -59,7 +67,9 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
 
   public void setItem(E item) {
     this.item = item;
+    updating = true;
     update();
+    updating = false;
   }
 
   public E getItem() {
@@ -112,7 +122,7 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
   }
 
   protected void documentUpdated(DocumentEvent ev) {
-    if (getItem() == null) {
+    if (getItem() == null || updating) {
       return;
     }
     Document doc = ev.getDocument();

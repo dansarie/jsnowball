@@ -1,19 +1,46 @@
 package se.dansarie.jsnowball;
 
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.List;
 import java.util.Set;
+
 import javax.swing.ListModel;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 
-public class SnowballState {
+public class SnowballState implements Serializable {
   private List<Article> articles = new ArrayList<>();
   private List<Author> authors = new ArrayList<>();
   private List<Journal> journals = new ArrayList<>();
+  private Map<Article, List<Article>> references = new HashMap<>();
+  private Map<Article, SnowballListModel<Article>> referenceListModels = new HashMap<>();
+  private boolean saved = true;
+
+  public SnowballState() {
+  }
+
+  private SnowballState(SerializationProxy sp) throws InvalidObjectException {
+    for (Journal jo : sp.journals) {
+      addJournal(jo);
+    }
+
+    for (Author au : sp.authors) {
+      addAuthor(au);
+    }
+
+    for (Article art : sp.articles) {
+      addArticle(art);
+    }
+  }
 
   private SnowballListModel<Article> articleListModel = new SnowballListModel<Article>() {
     @Override
@@ -31,7 +58,6 @@ public class SnowballState {
     @Override
     public Author getElementAt(int idx) {
       return authors.get(idx);
-      //return a.getLastName() + ", " + a.getFirstName();
     }
 
     @Override
@@ -52,31 +78,64 @@ public class SnowballState {
     }
   };
 
+  public boolean isSaved() {
+    return saved;
+  }
+
   public Article createArticle() {
     Article art = new Article();
+    addArticle(art);
+    return art;
+  }
+
+  private void addArticle(Article art) {
+    for (Author au : art.getAuthors()) {
+      if (!authors.contains(au)) {
+        throw new IllegalStateException("Invariant violated: unknown article author.");
+      }
+    }
     art.setState(this);
     articles.add(art);
     Collections.sort(articles);
+    references.put(art, new ArrayList<>());
+    referenceListModels.put(art, new SnowballListModel<Article>() {
+      @Override
+      public Article getElementAt(int idx) {
+        return references.get(art).get(idx);
+      }
+
+      @Override
+      public int getSize() {
+        return references.get(art).size();
+      }
+    });
     articleListModel.fireAdded(articles.indexOf(art));
-    return art;
   }
 
   public Author createAuthor() {
     Author au = new Author();
+    addAuthor(au);
+    return au;
+  }
+
+  private void addAuthor(Author au) {
     au.setState(this);
     authors.add(au);
     Collections.sort(authors);
     authorListModel.fireAdded(authors.indexOf(au));
-    return au;
   }
 
   public Journal createJournal() {
     Journal jo = new Journal();
+    addJournal(jo);
+    return jo;
+  }
+
+  private void addJournal(Journal jo) {
     jo.setState(this);
     journals.add(jo);
     Collections.sort(journals);
     journalListModel.fireAdded(journals.indexOf(jo));
-    return jo;
   }
 
   public Author getAuthorFromStrings(String firstName, String lastName) {
@@ -138,9 +197,14 @@ public class SnowballState {
     return journalListModel;
   }
 
+  public ListModel<Article> getReferenceListModel(Article art) {
+    return referenceListModels.get(art);
+  }
+
   void updated(Article art) {
     int idx = articles.indexOf(art);
     if (idx >= 0) {
+      saved = false;
       Collections.sort(articles);
       articleListModel.fireChanged(0, articles.size() - 1);
     }
@@ -149,6 +213,7 @@ public class SnowballState {
   void updated(Author au) {
     int idx = authors.indexOf(au);
     if (idx >= 0) {
+      saved = false;
       Collections.sort(authors);
       authorListModel.fireChanged(0, authors.size() - 1);
     }
@@ -157,6 +222,7 @@ public class SnowballState {
   void updated(Journal jo) {
     int idx = journals.indexOf(jo);
     if (idx >= 0) {
+      saved = false;
       Collections.sort(journals);
       journalListModel.fireChanged(0, journals.size() - 1);
     }
@@ -187,6 +253,32 @@ public class SnowballState {
       for (ListDataListener li : listeners) {
         li.contentsChanged(ev);
       }
+    }
+  }
+
+  private Object writeReplace() {
+    saved = true;
+    return new SerializationProxy(this);
+  }
+
+  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
+    throw new InvalidObjectException("Use of serialization proxy required.");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    static final long serialVersionUID = 4303753722544919601L;
+    private Article[] articles;
+    private Author[] authors;
+    private Journal[] journals;
+
+    private SerializationProxy(SnowballState st) {
+      articles = st.articles.toArray(new Article[st.articles.size()]);
+      authors = st.authors.toArray(new Author[st.authors.size()]);
+      journals = st.journals.toArray(new Journal[st.journals.size()]);
+    }
+
+    private Object readResolve() throws InvalidObjectException {
+      return new SnowballState(this);
     }
   }
 }

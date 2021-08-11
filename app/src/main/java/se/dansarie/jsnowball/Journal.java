@@ -1,10 +1,19 @@
 package se.dansarie.jsnowball;
 
-public class Journal extends SnowballStateMember {
-  private String name;
-  private String issn;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+
+public class Journal extends SnowballStateMember implements Serializable {
+  private String name = null;
+  private String issn = null;
 
   Journal() {
+  }
+
+  private Journal(SerializationProxy sp) {
+    name = sp.name;
+    issn = sp.issn;
   }
 
   public String getIssn() {
@@ -43,5 +52,28 @@ public class Journal extends SnowballStateMember {
   @Override
   public String toString() {
     return getName();
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
+    throw new InvalidObjectException("Use of serialization proxy required.");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    static final long serialVersionUID = 3612664749150805684L;
+    private String name;
+    private String issn;
+
+    private SerializationProxy(Journal jo) {
+      name = jo.name;
+      issn = jo.issn;
+    }
+
+    private Object readResolve() {
+      return new Journal(this);
+    }
   }
 }

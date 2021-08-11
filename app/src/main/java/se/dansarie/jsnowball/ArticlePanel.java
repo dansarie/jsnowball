@@ -1,5 +1,6 @@
 package se.dansarie.jsnowball;
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.function.Consumer;
@@ -25,6 +26,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   private JTextField issue = new JTextField();
   private JTextField pages = new JTextField();
   private JTextArea notes = new JTextArea();
+  private JList<Article> references = new JList<>();
   private ActionListener journalListener = new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent ev) {
@@ -39,18 +41,28 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   };
 
   ArticlePanel() {
-      addComponent("Title", title);
-      addComponent("Authors", new JScrollPane(authors));
-      addComponent("Journal", journal);
-      addComponent("DOI", doi);
-      addComponent("Year", year);
-      addComponent("Month", month);
-      addComponent("Volume", volume);
-      addComponent("Issue", issue);
-      addComponent("Pages", pages);
-      addComponent("Notes", new JScrollPane(notes));
-      disableComponents();
-      journal.addActionListener(journalListener);
+    JScrollPane authorScrollPane = new JScrollPane(authors);
+    JScrollPane notesScrollPane = new JScrollPane(notes);
+    JScrollPane referencesScrollPane = new JScrollPane(references);
+    authors.setPrototypeCellValue("AUTHOR AUTHOR AUTHOR AUTHOR");
+    authors.setVisibleRowCount(6);
+    Dimension dim = new Dimension(250, 100);
+    authorScrollPane.setPreferredSize(dim);
+    notesScrollPane.setPreferredSize(dim);
+    referencesScrollPane.setPreferredSize(dim);
+    addComponent("Title", title);
+    addComponent("Authors", authorScrollPane);
+    addComponent("Journal", journal);
+    addComponent("DOI", doi);
+    addComponent("Year", year);
+    addComponent("Month", month);
+    addComponent("Volume", volume);
+    addComponent("Issue", issue);
+    addComponent("Pages", pages);
+    addComponent("Notes", notesScrollPane);
+    addComponent("References", referencesScrollPane);
+    disableComponents();
+    journal.addActionListener(journalListener);
   }
 
   @Override
@@ -70,6 +82,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     issue.setText(a.getIssue());
     pages.setText(a.getPages());
     notes.setText(a.getNotes());
+    references.setModel(a.getState().getReferenceListModel(a));
     enableComponents();
   }
 

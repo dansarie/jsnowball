@@ -1,12 +1,23 @@
 package se.dansarie.jsnowball;
 
-public class Author extends SnowballStateMember {
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+
+public class Author extends SnowballStateMember implements Serializable {
   private String firstname;
   private String lastname;
   private String orgname;
   private String orcid;
 
   Author() {
+  }
+
+  private Author(SerializationProxy sp) {
+    firstname = sp.firstname;
+    lastname = sp.lastname;
+    orgname = sp.orgname;
+    orcid = sp.orcid;
   }
 
   public String getFirstName() {
@@ -76,5 +87,32 @@ public class Author extends SnowballStateMember {
   @Override
   public String toString() {
     return getLastName() + ", " + getFirstName();
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
+    throw new InvalidObjectException("Use of serialization proxy required.");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    static final long serialVersionUID = 5154001552990566490L;
+    private String firstname;
+    private String lastname;
+    private String orgname;
+    private String orcid;
+
+    private SerializationProxy(Author au) {
+      firstname = au.firstname;
+      lastname = au.lastname;
+      orgname = au.orgname;
+      orcid = au.orgname;
+    }
+
+    private Object readResolve() {
+      return new Author(this);
+    }
   }
 }

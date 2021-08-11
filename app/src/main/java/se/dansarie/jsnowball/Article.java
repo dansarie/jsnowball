@@ -7,11 +7,17 @@ import com.google.gson.JsonParser;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -19,7 +25,7 @@ import javax.swing.ListModel;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 
-public class Article extends SnowballStateMember {
+public class Article extends SnowballStateMember implements Serializable {
 
   private String title = null;
   private String doi = null;
@@ -33,6 +39,22 @@ public class Article extends SnowballStateMember {
   private ArticleAuthorsListModel authorsListModel = new ArticleAuthorsListModel();
 
   Article() {
+  }
+
+  private Article(SerializationProxy sp) {
+    title = sp.title;
+    doi = sp.doi;
+    authors = new ArrayList<>(Arrays.asList(sp.authors));
+    journal = sp.journal;
+    year = sp.year;
+    month = sp.month;
+    volume = sp.volume;
+    issue = sp.issue;
+    pages = sp.pages;
+  }
+
+  public List<Author> getAuthors() {
+    return Collections.unmodifiableList(authors);
   }
 
   public String getDoi() {
@@ -306,4 +328,41 @@ public class Article extends SnowballStateMember {
       }
     }
   }
-}
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
+    throw new InvalidObjectException("Use of serialization proxy required.");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    static final long serialVersionUID = 7198211239321687296L;
+    private String title;
+    private String doi;
+    private Author authors[];
+    private Journal journal;
+    private String year;
+    private String month;
+    private String volume;
+    private String issue;
+    private String pages;
+
+    private SerializationProxy(Article art) {
+      title = art.title;
+      doi = art.doi;
+      authors = art.authors.toArray(new Author[art.authors.size()]);
+      journal = art.journal;
+      year = art.year;
+      month = art.month;
+      volume = art.volume;
+      issue = art.issue;
+      pages = art.pages;
+    }
+
+    private Object readResolve() {
+      return new Article(this);
+    }
+  }
+ }
