@@ -1,7 +1,9 @@
 package se.dansarie.jsnowball;
 
 import java.awt.Dimension;
-import java.awt.Toolkit;
+import java.awt.Point;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,7 +11,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.prefs.Preferences;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -22,6 +26,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
@@ -29,6 +34,7 @@ import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.AbstractTableModel;
 
 public class JSnowball {
   private ArticlePanel articlePanel = new ArticlePanel();
@@ -40,6 +46,7 @@ public class JSnowball {
   private JList<Author> authorList = new JList<>();
   private JList<Journal> journalList = new JList<>();
   private JMenuBar menubar = new JMenuBar();
+  private JMenu openrecentmenu = new JMenu("Open recent");
   private JScrollPane articleScrollPane = new JScrollPane(articlePanel,
       JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
   private JScrollPane authorScrollPane = new JScrollPane(authorPanel,
@@ -49,9 +56,51 @@ public class JSnowball {
   private JSplitPane leftSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
   private JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
   private JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+  private JTabbedPane rightTabbedPane = new JTabbedPane(JTabbedPane.TOP);
   private ListSelectionWatcher<Article> articleSelectionWatcher;
   private ListSelectionWatcher<Author> authorSelectionWatcher;
   private ListSelectionWatcher<Journal> journalSelectionWatcher;
+  private SnowballTableModel authorTableModel = new SnowballTableModel() {
+    @Override
+    public int getRowCount() {
+      if (state == null) {
+        return 0;
+      }
+      return state.getArticleListModel().getSize();
+    }
+
+    @Override
+    public int getColumnCount() {
+      return 2;
+    }
+
+    @Override
+    public Object getValueAt(int row, int col) {
+      Author au = state.getAuthorList().get(row);
+      if (col == 0) {
+        return au.toString();
+      }
+      if (col == 1) {
+        int i = 0;
+        for (Article art : state.getArticleList()) {
+          if (art.getAuthors().contains(au)) {
+            i += 1;
+          }
+        }
+        return Integer.toString(i);
+      }
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    public String getColumnName(int col) {
+      switch (col) {
+        case 0: return "Author";
+        case 1: return "Articles";
+        default: throw new IllegalArgumentException();
+      }
+    }
+  };
 
   private JSnowball() {
     createFrame();
@@ -82,10 +131,12 @@ public class JSnowball {
     state.getAuthorListModel().addListDataListener(authorSelectionWatcher);
     state.getJournalListModel().addListDataListener(journalSelectionWatcher);
     state.getJournalListModel().addListDataListener(articlePanel);
+    authorTableModel.setState(state);
   }
 
   private boolean saveState() {
     JFileChooser chooser = new JFileChooser();
+    chooser.setCurrentDirectory(getDirectoryPreference());
     if (chooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
       return false;
     }
@@ -93,15 +144,16 @@ public class JSnowball {
     if (fi == null) {
       return false;
     }
+    saveDirectoryPreference(fi);
     try (FileOutputStream fos = new FileOutputStream(fi);
         ObjectOutputStream oos = new ObjectOutputStream(fos)) {
       oos.writeObject(state);
     } catch (IOException ex) {
-      System.out.println(ex);
       JOptionPane.showMessageDialog(frame, "An error occured while attempting to save the project"
           + " file.", "File error", JOptionPane.ERROR_MESSAGE);
       return false;
     }
+    updateRecentFiles(fi);
     return true;
   }
 
@@ -111,10 +163,13 @@ public class JSnowball {
     JMenuItem saveprojectitem = new JMenuItem("Save project...");
     JMenuItem exititem = new JMenuItem("Quit");
 
+    createRecentFilesMenu();
+
     JMenu filemenu = new JMenu("File");
     filemenu.add(newprojectitem);
     filemenu.addSeparator();
     filemenu.add(openprojectitem);
+    filemenu.add(openrecentmenu);
     filemenu.add(saveprojectitem);
     filemenu.addSeparator();
     filemenu.add(exititem);
@@ -169,6 +224,7 @@ public class JSnowball {
         }
       }
       JFileChooser chooser = new JFileChooser();
+      chooser.setCurrentDirectory(getDirectoryPreference());
       if (chooser.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
         return;
       }
@@ -176,12 +232,13 @@ public class JSnowball {
       if (fi == null) {
         return;
       }
+      saveDirectoryPreference(fi);
+      updateRecentFiles(fi);
       try (FileInputStream fis = new FileInputStream(fi);
           ObjectInputStream ois = new ObjectInputStream(fis)) {
         SnowballState newState = (SnowballState)ois.readObject();
         setState(newState);
       } catch (ClassCastException | ClassNotFoundException | IOException ex) {
-        System.out.println(ex);
         JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
             + " file.", "File error", JOptionPane.ERROR_MESSAGE);
       }
@@ -305,10 +362,23 @@ public class JSnowball {
     leftSplitPane.setBottomComponent(articleScrollPane);
   }
 
+  private void createRightTabbedPane() {
+    JTable authorTable = new JTable(authorTableModel);
+
+    rightTabbedPane.add(new JPanel(), "Article graph");
+    rightTabbedPane.add(new JPanel(), "Author graph");
+    rightTabbedPane.add(new JPanel(), "Articles");
+    rightTabbedPane.add(new JScrollPane(authorTable), "Authors");
+    rightTabbedPane.add(new JPanel(), "Journals");
+    rightTabbedPane.add(new JPanel(), "Tags");
+    rightTabbedPane.add(new JPanel(), "Years");
+  }
+
   private void createMainSplitPane() {
     createLeftSplitPane();
+    createRightTabbedPane();
     mainSplitPane.setLeftComponent(leftSplitPane);
-    mainSplitPane.setRightComponent(new JPanel());
+    mainSplitPane.setRightComponent(rightTabbedPane);
   }
 
   private void createFrame() {
@@ -316,20 +386,163 @@ public class JSnowball {
     frame.setJMenuBar(menubar);
     createMainSplitPane();
     frame.getContentPane().add(mainSplitPane);
-    Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
-    int width = 1024;
-    int height = 768;
     frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-    frame.setSize(width, height);
-    frame.setLocation((int)(dim.getWidth() - width) / 2, (int)(dim.getHeight() - height) / 2);
+    frame.setSize(getFrameDimensionPreference());
+    frame.setLocation(getFrameLocationPreference());
+
+    frame.addComponentListener(new ComponentAdapter() {
+      @Override
+      public void componentMoved(ComponentEvent ev) {
+        Preferences prefs = getPreferences();
+        Point location = frame.getLocation();
+        prefs.putInt("location_x", location.x);
+        prefs.putInt("location_y", location.y);
+      }
+
+      @Override
+      public void componentResized(ComponentEvent ev) {
+        Preferences prefs = getPreferences();
+        Dimension size = frame.getSize();
+        prefs.putInt("dimension_x", size.width);
+        prefs.putInt("dimension_y", size.height);
+      }
+    });
+
     frame.setVisible(true);
   }
+
+  private Preferences getPreferences() {
+    return Preferences.userNodeForPackage(this.getClass());
+  }
+
+  private Point getFrameLocationPreference() {
+    Preferences prefs = getPreferences();
+    int x = prefs.getInt("location_x", 0);
+    int y = prefs.getInt("location_y", 0);
+    return new Point(x, y);
+  }
+
+  private Dimension getFrameDimensionPreference() {
+    Preferences prefs = getPreferences();
+    int width = prefs.getInt("dimension_x", 1024);
+    int height = prefs.getInt("dimension_y", 768);
+    return new Dimension(width, height);
+  }
+
+  private void saveDirectoryPreference(File dir) {
+    if (!dir.isDirectory()) {
+      dir = dir.getParentFile();
+    }
+    String path = null;
+    if (dir != null) {
+      path = dir.getPath();
+    }
+    getPreferences().put("last_dir", path);
+  }
+
+  private void updateRecentFiles(File fi) {
+    Preferences prefs = getPreferences();
+    String newpath = fi.getPath();
+    ArrayList<String> paths = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+      String val = prefs.get("latest_file_" + i, null);
+      if (val == null) {
+        break;
+      }
+      paths.add(val);
+    }
+    for (String path : paths.toArray(new String[paths.size()])) {
+      if (path.equals(newpath)) {
+        paths.remove(path);
+      }
+    }
+    paths.add(0, newpath);
+    for (int i = 0; i < 5; i++) {
+      String key = "latest_file_" + i;
+      if (i < paths.size()) {
+        prefs.put(key, paths.get(i));
+      } else {
+        prefs.remove(key);
+      }
+    }
+    createRecentFilesMenu();
+  }
+
+  private void createRecentFilesMenu() {
+    openrecentmenu.removeAll();
+    Preferences prefs = getPreferences();
+    for (int i = 0; i < 5; i++) {
+      String path = prefs.get("latest_file_" + i, null);
+      if (path == null) {
+        continue;
+      }
+      File fi = new File(path);
+      JMenuItem recentItem = new JMenuItem(path);
+      recentItem.addActionListener(ev -> {
+        if (!state.isSaved()) {
+          int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
+              + "Do you wish to destroy unsaved work?", "Open project", JOptionPane.YES_NO_OPTION);
+          if (result != JOptionPane.YES_OPTION) {
+            return;
+          }
+        }
+        try (FileInputStream fis = new FileInputStream(fi);
+            ObjectInputStream ois = new ObjectInputStream(fis)) {
+          SnowballState newState = (SnowballState)ois.readObject();
+          setState(newState);
+        } catch (ClassCastException | ClassNotFoundException | IOException ex) {
+          JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the "
+              + "project file.", "File error", JOptionPane.ERROR_MESSAGE);
+        }
+      });
+      openrecentmenu.add(recentItem);
+    }
+  }
+
+  private File getDirectoryPreference() {
+    Preferences prefs = getPreferences();
+    String path = prefs.get("last_dir", null);
+    if (path == null) {
+      return null;
+    }
+    return new File(path);
+  }
+
   public static void main(String[] args) {
     new JSnowball();
 
     //Article.fromDoi(state, "10.1016/0167-4048(88)90003-X");
     //Article.fromDoi(state, "10.21105/joss.02946");
     //Article.fromDoi(state, "10.1007/3-540-48519-8_18");
+  }
+
+  private static abstract class SnowballTableModel extends AbstractTableModel
+      implements ListDataListener {
+    private SnowballState state;
+
+    public void setState(SnowballState newstate) {
+      if (state != null) {
+        state.getArticleListModel().removeListDataListener(this);
+      }
+      state = newstate;
+      state.getArticleListModel().addListDataListener(this);
+      fireTableDataChanged();
+    }
+
+    @Override
+    public void contentsChanged(ListDataEvent ev) {
+      fireTableDataChanged();
+    }
+
+    @Override
+    public void intervalAdded(ListDataEvent ev) {
+      fireTableRowsInserted(ev.getIndex0(), ev.getIndex1());
+    }
+
+    @Override
+    public void intervalRemoved(ListDataEvent ev) {
+      fireTableRowsDeleted(ev.getIndex0(), ev.getIndex1());
+    }
   }
 
   private static class ListSelectionWatcher<E> implements ListDataListener, ListSelectionListener {

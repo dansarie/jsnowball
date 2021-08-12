@@ -4,7 +4,6 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +22,7 @@ public class SnowballState implements Serializable {
   private List<Journal> journals = new ArrayList<>();
   private Map<Article, List<Article>> references = new HashMap<>();
   private Map<Article, SnowballListModel<Article>> referenceListModels = new HashMap<>();
+  private Map<Article, SnowballListModel<Article>> referencedByListModels = new HashMap<>();
   private boolean saved = true;
 
   public SnowballState() {
@@ -39,6 +39,12 @@ public class SnowballState implements Serializable {
 
     for (Article art : sp.articles) {
       addArticle(art);
+    }
+
+    for (int i = 0; i < sp.articles.length; i++) {
+      for (Article reference : sp.references[i]) {
+        addReference(sp.articles[i], reference);
+      }
     }
   }
 
@@ -109,6 +115,27 @@ public class SnowballState implements Serializable {
         return references.get(art).size();
       }
     });
+    referencedByListModels.put(art, new SnowballListModel<Article>() {
+      private List<Article> getElements() {
+        ArrayList<Article> referencing = new ArrayList<>();
+        for (Article a : articles) {
+          if (references.get(a).contains(art)) {
+            referencing.add(a);
+          }
+        }
+        return referencing;
+      }
+
+      @Override
+      public Article getElementAt(int idx) {
+        return getElements().get(idx);
+      }
+
+      @Override
+      public int getSize() {
+        return getElements().size();
+      }
+    });
     articleListModel.fireAdded(articles.indexOf(art));
   }
 
@@ -177,12 +204,26 @@ public class SnowballState implements Serializable {
     return Collections.unmodifiableList(articles);
   }
 
+  public List<Article> getArticleList(Author au) {
+    ArrayList<Article> ret = new ArrayList<>();
+    for (Article art : articles) {
+      if (art.getAuthors().contains(au)) {
+        ret.add(art);
+      }
+    }
+    return Collections.unmodifiableList(ret);
+  }
+
   public List<Author> getAuthorList() {
     return Collections.unmodifiableList(authors);
   }
 
   public List<Journal> getJournalList() {
     return Collections.unmodifiableList(journals);
+  }
+
+  public List<Article> getReferenceList(Article art) {
+    return Collections.unmodifiableList(references.get(art));
   }
 
   public ListModel<Article> getArticleListModel() {
@@ -199,6 +240,34 @@ public class SnowballState implements Serializable {
 
   public ListModel<Article> getReferenceListModel(Article art) {
     return referenceListModels.get(art);
+  }
+
+  public ListModel<Article> getReferencedByListModel(Article art) {
+    return referencedByListModels.get(art);
+  }
+
+  public void addReference(Article art, Article reference) {
+    if (Objects.requireNonNull(art) == Objects.requireNonNull(reference)) {
+      throw new IllegalArgumentException();
+    }
+    List<Article> refs = references.get(art);
+    if (!refs.contains(reference)) {
+      refs.add(reference);
+      Collections.sort(refs);
+      referenceListModels.get(art).fireAdded(refs.indexOf(reference));
+    }
+  }
+
+  public void removeReference(Article art, Article reference) {
+    if (Objects.requireNonNull(art) == Objects.requireNonNull(reference)) {
+      throw new IllegalArgumentException();
+    }
+    List<Article> refs = references.get(art);
+    int idx = refs.indexOf(reference);
+    if (idx >= 0) {
+      refs.remove(idx);
+      referenceListModels.get(art).fireRemoved(idx);
+    }
   }
 
   void updated(Article art) {
@@ -254,6 +323,13 @@ public class SnowballState implements Serializable {
         li.contentsChanged(ev);
       }
     }
+
+    private void fireRemoved(int idx) {
+      ListDataEvent ev = new ListDataEvent(this, ListDataEvent.INTERVAL_REMOVED, idx, idx);
+      for (ListDataListener li : listeners) {
+        li.intervalRemoved(ev);
+      }
+    }
   }
 
   private Object writeReplace() {
@@ -270,11 +346,20 @@ public class SnowballState implements Serializable {
     private Article[] articles;
     private Author[] authors;
     private Journal[] journals;
+    private Article[][] references;
 
     private SerializationProxy(SnowballState st) {
       articles = st.articles.toArray(new Article[st.articles.size()]);
       authors = st.authors.toArray(new Author[st.authors.size()]);
       journals = st.journals.toArray(new Journal[st.journals.size()]);
+      references = new Article[articles.length][];
+      for (int i = 0; i < articles.length; i++) {
+        List<Article> refs = st.getReferenceList(articles[i]);
+        references[i] = new Article[refs.size()];
+        for (int j = 0; j < refs.size(); j++) {
+          references[i][j] = refs.get(j);
+        }
+      }
     }
 
     private Object readResolve() throws InvalidObjectException {

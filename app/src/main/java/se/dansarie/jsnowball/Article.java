@@ -150,7 +150,7 @@ public class Article extends SnowballStateMember implements Serializable {
     }
   }
 
-  public ListModel<String> getAuthorsListModel() {
+  public ListModel<Author> getAuthorsListModel() {
     return authorsListModel;
   }
 
@@ -290,13 +290,12 @@ public class Article extends SnowballStateMember implements Serializable {
     return getTitle();
   }
 
-  private class ArticleAuthorsListModel implements ListModel<String> {
+  private class ArticleAuthorsListModel implements ListModel<Author> {
     private Set<ListDataListener> listeners = new HashSet<>();
 
     @Override
-    public String getElementAt(int idx) {
-      Author a = authors.get(idx);
-      return a.getLastName() + ", " + a.getFirstName();
+    public Author getElementAt(int idx) {
+      return authors.get(idx);
     }
 
     @Override

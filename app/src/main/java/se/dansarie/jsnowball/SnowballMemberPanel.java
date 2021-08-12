@@ -1,5 +1,6 @@
 package se.dansarie.jsnowball;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -39,6 +40,8 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
     JComponent childComp = comp;
     if (comp instanceof JScrollPane) {
       childComp = (JComponent)(((JScrollPane)comp).getViewport().getView());
+      Dimension dim = new Dimension(250, 100);
+      comp.setPreferredSize(dim);
     }
 
     gb.fill = GridBagConstraints.NONE;
@@ -55,6 +58,7 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
       doc.addDocumentListener(this);
       doc.putProperty("parentcomponent", tc);
     } else if (childComp instanceof JList) {
+      ((JList<?>)childComp).setVisibleRowCount(6);
       gb.weighty = 1;
       gb.fill = GridBagConstraints.BOTH;
     }

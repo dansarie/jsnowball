@@ -2,6 +2,7 @@ package se.dansarie.jsnowball;
 
 import java.util.function.Consumer;
 
+import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -14,6 +15,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
   private JTextField organizationName = new JTextField();
   private JTextField orcid = new JTextField();
   private JTextArea notes = new JTextArea();
+  private JList<Article> articles = new JList<>();
 
   AuthorPanel() {
     addComponent("First name", firstName);
@@ -21,6 +23,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
     addComponent("Organization name", organizationName);
     addComponent("ORCID", orcid);
     addComponent("Notes", new JScrollPane(notes));
+    addComponent("Articles", new JScrollPane(articles));
     disableComponents();
   }
 
@@ -36,6 +39,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
     organizationName.setText(a.getOrgName());
     orcid.setText(a.getOrcId());
     notes.setText(a.getNotes());
+    articles.setListData(a.getState().getArticleList(a).toArray(new Article[0]));
     enableComponents();
   }
 
