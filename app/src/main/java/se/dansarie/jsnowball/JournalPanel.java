@@ -1,5 +1,9 @@
 package se.dansarie.jsnowball;
 
+import java.util.ArrayList;
+
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -12,12 +16,41 @@ public class JournalPanel extends SnowballMemberPanel<Journal> {
   private JTextField name = new JTextField();
   private JTextField issn = new JTextField();
   private JTextArea notes = new JTextArea();
+  private JButton deleteButton = new JButton("Remove journal");
+  private JButton mergeButton = new JButton("Merge journals");
 
   JournalPanel() {
     addComponent("Name", name);
     addComponent("ISSN", issn);
     addComponent("Notes", new JScrollPane(notes));
+    addComponent("", deleteButton);
+    addComponent("", mergeButton);
     disableComponents();
+
+    deleteButton.addActionListener(ev -> {
+      if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this journal?",
+          "Delete journal", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) ==
+              JOptionPane.YES_OPTION) {
+            Journal art = getItem();
+            setItem(null);
+            art.getState().removeJournal(art);
+          }
+    });
+
+    mergeButton.addActionListener(ev -> {
+      ArrayList<Journal> journals = new ArrayList<>(getItem().getState().getJournalList());
+      journals.remove(getItem());
+      if (journals.size() == 0) {
+        return;
+      }
+      Journal jo = (Journal)JOptionPane.showInputDialog(mergeButton,
+          "Select the journal you wish to merge into this one.", "Merge journals",
+          JOptionPane.QUESTION_MESSAGE, null, journals.toArray(), journals.get(0));
+      if (jo == null) {
+        return;
+      }
+      getItem().getState().mergeJournals(getItem(), jo);
+    });
   }
 
   @Override
@@ -25,6 +58,9 @@ public class JournalPanel extends SnowballMemberPanel<Journal> {
     Journal j = getItem();
     if (j == null) {
       disableComponents();
+      name.setText("");
+      issn.setText("");
+      notes.setText("");
       return;
     }
     name.setText(j.getName());

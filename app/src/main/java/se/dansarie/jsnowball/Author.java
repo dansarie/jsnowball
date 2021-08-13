@@ -3,6 +3,7 @@ package se.dansarie.jsnowball;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Objects;
 
 public class Author extends SnowballStateMember implements Serializable {
   private String firstname;
@@ -18,6 +19,7 @@ public class Author extends SnowballStateMember implements Serializable {
     lastname = sp.lastname;
     orgname = sp.orgname;
     orcid = sp.orcid;
+    setNotes(sp.notes);
   }
 
   public String getFirstName() {
@@ -37,22 +39,22 @@ public class Author extends SnowballStateMember implements Serializable {
   }
 
   public void setFirstName(String name) {
-    firstname = name;
+    firstname = Objects.requireNonNullElse(name, "");
     state.updated(this);
   }
 
   public void setLastName(String name) {
-    lastname = name;
+    lastname = Objects.requireNonNullElse(name, "");
     state.updated(this);
   }
 
   public void setOrgName(String name) {
-    orgname = name;
+    orgname = Objects.requireNonNullElse(name, "");
     state.updated(this);
   }
 
   public void setOrcId(String id) {
-    orcid = id;
+    orcid = Objects.requireNonNullElse(id, "");
     state.updated(this);
   }
 
@@ -103,12 +105,14 @@ public class Author extends SnowballStateMember implements Serializable {
     private String lastname;
     private String orgname;
     private String orcid;
+    private String notes;
 
     private SerializationProxy(Author au) {
       firstname = au.firstname;
       lastname = au.lastname;
       orgname = au.orgname;
       orcid = au.orgname;
+      notes = au.getNotes();
     }
 
     private Object readResolve() {

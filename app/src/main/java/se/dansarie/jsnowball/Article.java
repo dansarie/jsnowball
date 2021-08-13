@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +52,7 @@ public class Article extends SnowballStateMember implements Serializable {
     volume = sp.volume;
     issue = sp.issue;
     pages = sp.pages;
+    setNotes(sp.notes);
   }
 
   public List<Author> getAuthors() {
@@ -90,7 +92,7 @@ public class Article extends SnowballStateMember implements Serializable {
   }
 
   public void setDoi(String doi) {
-    this.doi = doi;
+    this.doi = Objects.requireNonNullElse(doi, "");
     state.updated(this);
   }
 
@@ -100,32 +102,32 @@ public class Article extends SnowballStateMember implements Serializable {
   }
 
   public void setTitle(String title) {
-    this.title = title;
+    this.title = Objects.requireNonNullElse(title, "");
     state.updated(this);
   }
 
   public void setYear(String year) {
-    this.year = year;
+    this.year = Objects.requireNonNullElse(year, "");
     state.updated(this);
   }
 
   public void setMonth(String month) {
-    this.month = month;
+    this.month = Objects.requireNonNullElse(month, "");
     state.updated(this);
   }
 
   public void setVolume(String volume) {
-    this.volume = volume;
+    this.volume = Objects.requireNonNullElse(volume, "");
     state.updated(this);
   }
 
   public void setIssue(String issue) {
-    this.issue = issue;
+    this.issue = Objects.requireNonNullElse(issue, "");
     state.updated(this);
   }
 
   public void setPages(String pages) {
-    this.pages = pages;
+    this.pages = Objects.requireNonNullElse(pages, "");
     state.updated(this);
   }
 
@@ -154,9 +156,23 @@ public class Article extends SnowballStateMember implements Serializable {
     return authorsListModel;
   }
 
+  public void importReferences() {
+    if (doi == null || doi.length() == 0) {
+      return;
+    }
+    String doidata = getDoiJson(doi);
+    for (String ref : parseReferencesJson(doidata)) {
+      Article refart = fromDoi(getState(), ref);
+      getState().addReference(this, refart);
+    }
+  }
+
   static Article fromDoi(SnowballState state, String doi) {
+    return parseDoiJson(state, getDoiJson(doi));
+  }
+
+  private static String getDoiJson(String doi) {
     InputStream stream = null;
-    Article art = null;
     try {
       System.out.println("DOI: " + doi);
       URL url = new URL("https://doi.org/" + doi);
@@ -166,8 +182,7 @@ public class Article extends SnowballStateMember implements Serializable {
       stream = (InputStream)connection.getContent();
       String doidata = new String(stream.readAllBytes(), "UTF-8");
       System.out.println(doidata);
-      art = parseDoiJson(state, doidata);
-
+      return doidata;
     } catch (MalformedURLException ex) {
       System.out.println(ex);
     } catch (IOException ex) {
@@ -180,7 +195,22 @@ public class Article extends SnowballStateMember implements Serializable {
         }
       }
     }
-    return art;
+    return null;
+  }
+
+  private static List<String> parseReferencesJson(String doidata) {
+    JsonObject jsonroot = JsonParser.parseString(doidata).getAsJsonObject();
+    ArrayList<String> refs = new ArrayList<>();
+    if (!jsonroot.has("reference")) {
+      return refs;
+    }
+    for (JsonElement ref : jsonroot.getAsJsonArray("reference")) {
+      if (!ref.getAsJsonObject().has("DOI")) {
+        continue;
+      }
+      refs.add(ref.getAsJsonObject().getAsJsonPrimitive("DOI").getAsString());
+    }
+    return refs;
   }
 
   private static Article parseDoiJson(SnowballState state, String doidata) {
@@ -250,10 +280,16 @@ public class Article extends SnowballStateMember implements Serializable {
     if (jsonroot.has("container-title")) {
       String journalName = jsonroot.getAsJsonPrimitive("container-title").getAsString();
       String issn = null;
-      JsonArray issnArray = jsonroot.getAsJsonArray("ISSN");
-      if (issnArray.size() > 0) {
-        issn = issnArray.get(0).getAsString();
+      JsonElement issnElement = jsonroot.get("ISSN");
+      if (issnElement instanceof JsonArray) {
+        JsonArray issnArray = jsonroot.getAsJsonArray("ISSN");
+        if (issnArray.size() > 0) {
+          issn = issnArray.get(0).getAsString();
+        }
+      } else if (issnElement instanceof JsonPrimitive) {
+        issn = issnElement.getAsJsonPrimitive().getAsString();
       }
+
       Journal journal = state.getJournalFromIssn(issn);
       if (journal.getName() == null) {
         journal.setName(journalName);
@@ -347,6 +383,7 @@ public class Article extends SnowballStateMember implements Serializable {
     private String volume;
     private String issue;
     private String pages;
+    private String notes;
 
     private SerializationProxy(Article art) {
       title = art.title;
@@ -358,6 +395,7 @@ public class Article extends SnowballStateMember implements Serializable {
       volume = art.volume;
       issue = art.issue;
       pages = art.pages;
+      notes = art.getNotes();
     }
 
     private Object readResolve() {

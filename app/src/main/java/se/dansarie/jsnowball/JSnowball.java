@@ -40,11 +40,13 @@ public class JSnowball {
   private ArticlePanel articlePanel = new ArticlePanel();
   private AuthorPanel authorPanel = new AuthorPanel();
   private JournalPanel journalPanel = new JournalPanel();
+  private TagPanel tagPanel = new TagPanel();
   private SnowballState state;
   private JFrame frame = new JFrame("JSnowball");
   private JList<Article> articleList = new JList<>();
   private JList<Author> authorList = new JList<>();
   private JList<Journal> journalList = new JList<>();
+  private JList<Tag> tagList = new JList<>();
   private JMenuBar menubar = new JMenuBar();
   private JMenu openrecentmenu = new JMenu("Open recent");
   private JScrollPane articleScrollPane = new JScrollPane(articlePanel,
@@ -53,6 +55,8 @@ public class JSnowball {
       JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
   private JScrollPane journalScrollPane = new JScrollPane(journalPanel,
       JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+  private JScrollPane tagScrollPane = new JScrollPane(tagPanel,
+      JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
   private JSplitPane leftSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
   private JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
   private JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -60,13 +64,163 @@ public class JSnowball {
   private ListSelectionWatcher<Article> articleSelectionWatcher;
   private ListSelectionWatcher<Author> authorSelectionWatcher;
   private ListSelectionWatcher<Journal> journalSelectionWatcher;
+  private ListSelectionWatcher<Tag> tagSelectionWatcher;
+  private File currentFile = null;
+
+  private SnowballTableModel articleTableModel = new SnowballTableModel() {
+    @Override
+    public int getRowCount() {
+      if (state == null) {
+        return 0;
+      }
+      return state.getArticleList().size();
+    }
+
+    @Override
+    public String getColumnName(int col) {
+      switch (col) {
+        case 0: return "Article";
+        case 1: return "References";
+        default: throw new IllegalArgumentException();
+      }
+    }
+
+    @Override
+    public Object getValueAt(int row, int col) {
+      Article art = state.getArticleList().get(row);
+      switch (col) {
+        case 0: return art.toString();
+        case 1: return Integer.valueOf(state.getReferencedByList(art).size());
+      }
+      throw new IllegalArgumentException();
+    }
+  };
+
   private SnowballTableModel authorTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
       if (state == null) {
         return 0;
       }
-      return state.getArticleListModel().getSize();
+      return state.getAuthorList().size();
+    }
+
+    @Override
+    public String getColumnName(int col) {
+      switch (col) {
+        case 0: return "Author";
+        case 1: return "Articles";
+        case 2: return "References";
+        default: throw new IllegalArgumentException();
+      }
+    }
+
+    @Override
+    public Class<?> getColumnClass(int col) {
+      switch (col) {
+        case 0: return String.class;
+        case 1: return Integer.class;
+        case 2: return Integer.class;
+        default: throw new IllegalArgumentException();
+      }
+    }
+
+    @Override
+    public int getColumnCount() {
+      return 3;
+    }
+
+    @Override
+    public Object getValueAt(int row, int col) {
+      Author au = state.getAuthorList().get(row);
+      int i = 0;
+      switch (col) {
+        case 0: return au.toString();
+        case 1:
+          for (Article art : state.getArticleList()) {
+            if (art.getAuthors().contains(au)) {
+              i += 1;
+            }
+          }
+          return Integer.valueOf(i);
+        case 2:
+          for (Article art : state.getArticleList()) {
+            if (art.getAuthors().contains(au)) {
+              i += state.getReferencedByList(art).size();
+            }
+          }
+          return Integer.valueOf(i);
+      }
+      throw new IllegalArgumentException();
+    }
+  };
+
+  private SnowballTableModel journalTableModel = new SnowballTableModel() {
+    @Override
+    public int getRowCount() {
+      if (state == null) {
+        return 0;
+      }
+      return state.getJournalList().size();
+    }
+
+    @Override
+    public int getColumnCount() {
+      return 3;
+    }
+
+    @Override
+    public String getColumnName(int col) {
+      switch (col) {
+        case 0: return "Journal";
+        case 1: return "Articles";
+        case 2: return "References";
+        default: throw new IllegalArgumentException();
+      }
+    }
+
+    @Override
+    public Class<?> getColumnClass(int col) {
+      switch (col) {
+        case 0: return String.class;
+        case 1: return Integer.class;
+        case 2: return Integer.class;
+        default: throw new IllegalArgumentException();
+      }
+    }
+
+    @Override
+    public Object getValueAt(int row, int col) {
+      Journal jo = state.getJournalList().get(row);
+      int i = 0;
+      switch (col) {
+        case 0: return jo.toString();
+        case 1:
+          for (Article art : state.getArticleList()) {
+            if (art.getJournal() == jo) {
+              i += 1;
+            }
+          }
+          return Integer.valueOf(i);
+        case 2:
+          for (Article art : state.getArticleList()) {
+            if (art.getJournal() == jo) {
+              i += state.getReferencedByList(art).size();
+            }
+          }
+          return Integer.valueOf(i);
+      }
+      throw new IllegalArgumentException();
+    }
+  };
+
+  private SnowballTableModel tagTableModel = new SnowballTableModel() {
+    @Override
+    public int getRowCount() {
+      if (state == null) {
+        return 0;
+      }
+      return state.getTagList().size();
     }
 
     @Override
@@ -75,30 +229,29 @@ public class JSnowball {
     }
 
     @Override
-    public Object getValueAt(int row, int col) {
-      Author au = state.getAuthorList().get(row);
-      if (col == 0) {
-        return au.toString();
-      }
-      if (col == 1) {
-        int i = 0;
-        for (Article art : state.getArticleList()) {
-          if (art.getAuthors().contains(au)) {
-            i += 1;
-          }
-        }
-        return Integer.toString(i);
-      }
-      throw new IllegalArgumentException();
-    }
-
-    @Override
     public String getColumnName(int col) {
       switch (col) {
-        case 0: return "Author";
+        case 0: return "Tag";
         case 1: return "Articles";
         default: throw new IllegalArgumentException();
       }
+    }
+
+    @Override
+    public Object getValueAt(int row, int col) {
+      Tag tag = state.getTagList().get(row);
+      switch (col) {
+        case 0: return tag.toString();
+        case 1:
+          int i = 0;
+          for (Article art : state.getArticleList()) {
+            if (state.getTagList(art).contains(tag)) {
+              i += 1;
+            }
+          }
+          return Integer.valueOf(i);
+      }
+      throw new IllegalArgumentException();
     }
   };
 
@@ -121,30 +274,43 @@ public class JSnowball {
     articleList.setModel(state.getArticleListModel());
     authorList.setModel(state.getAuthorListModel());
     journalList.setModel(state.getJournalListModel());
+    tagList.setModel(state.getTagListModel());
     articleSelectionWatcher = new ListSelectionWatcher<>(articleList);
     authorSelectionWatcher = new ListSelectionWatcher<>(authorList);
     journalSelectionWatcher = new ListSelectionWatcher<>(journalList);
+    tagSelectionWatcher = new ListSelectionWatcher<>(tagList);
     articleList.addListSelectionListener(articleSelectionWatcher);
     authorList.addListSelectionListener(authorSelectionWatcher);
     journalList.addListSelectionListener(journalSelectionWatcher);
+    tagList.addListSelectionListener(tagSelectionWatcher);
     state.getArticleListModel().addListDataListener(articleSelectionWatcher);
     state.getAuthorListModel().addListDataListener(authorSelectionWatcher);
     state.getJournalListModel().addListDataListener(journalSelectionWatcher);
+    state.getTagListModel().addListDataListener(tagSelectionWatcher);
     state.getJournalListModel().addListDataListener(articlePanel);
+    articleTableModel.setState(state);
     authorTableModel.setState(state);
+    journalTableModel.setState(state);
+    tagTableModel.setState(state);
   }
 
-  private boolean saveState() {
-    JFileChooser chooser = new JFileChooser();
-    chooser.setCurrentDirectory(getDirectoryPreference());
-    if (chooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
-      return false;
+  private boolean saveState(boolean showDialog) {
+    File fi;
+    if (showDialog || currentFile == null) {
+      JFileChooser chooser = new JFileChooser();
+      chooser.setCurrentDirectory(getDirectoryPreference());
+      if (chooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
+        return false;
+      }
+      fi = chooser.getSelectedFile();
+      if (fi == null) {
+        return false;
+      }
+      saveDirectoryPreference(fi);
+    } else {
+      fi = currentFile;
     }
-    File fi = chooser.getSelectedFile();
-    if (fi == null) {
-      return false;
-    }
-    saveDirectoryPreference(fi);
+
     try (FileOutputStream fos = new FileOutputStream(fi);
         ObjectOutputStream oos = new ObjectOutputStream(fos)) {
       oos.writeObject(state);
@@ -154,13 +320,15 @@ public class JSnowball {
       return false;
     }
     updateRecentFiles(fi);
+    currentFile = fi;
     return true;
   }
 
   private void createMenuBar() {
     JMenuItem newprojectitem = new JMenuItem("New project");
     JMenuItem openprojectitem = new JMenuItem("Open project...");
-    JMenuItem saveprojectitem = new JMenuItem("Save project...");
+    JMenuItem saveprojectitem = new JMenuItem("Save project");
+    JMenuItem saveasprojectitem = new JMenuItem("Save project as...");
     JMenuItem exititem = new JMenuItem("Quit");
 
     createRecentFilesMenu();
@@ -170,7 +338,9 @@ public class JSnowball {
     filemenu.addSeparator();
     filemenu.add(openprojectitem);
     filemenu.add(openrecentmenu);
+    filemenu.addSeparator();
     filemenu.add(saveprojectitem);
+    filemenu.add(saveasprojectitem);
     filemenu.addSeparator();
     filemenu.add(exititem);
 
@@ -179,12 +349,15 @@ public class JSnowball {
     JMenuItem addArticleManually = new JMenuItem("New article");
     JMenuItem addAuthorItem = new JMenuItem("New author");
     JMenuItem addJournalItem = new JMenuItem("New journal");
+    JMenuItem addTagItem = new JMenuItem("New tag");
     operationsMenu.add(addArticleManually);
     operationsMenu.add(addArticleDoi);
     operationsMenu.addSeparator();
     operationsMenu.add(addAuthorItem);
     operationsMenu.addSeparator();
     operationsMenu.add(addJournalItem);
+    operationsMenu.addSeparator();
+    operationsMenu.add(addTagItem);
 
     JMenuItem aboutitem = new JMenuItem("About JSnowball...");
     JMenu helpmenu = new JMenu("Help");
@@ -238,13 +411,15 @@ public class JSnowball {
           ObjectInputStream ois = new ObjectInputStream(fis)) {
         SnowballState newState = (SnowballState)ois.readObject();
         setState(newState);
+        currentFile = fi;
       } catch (ClassCastException | ClassNotFoundException | IOException ex) {
         JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
             + " file.", "File error", JOptionPane.ERROR_MESSAGE);
       }
     });
 
-    saveprojectitem.addActionListener(ev -> saveState());
+    saveprojectitem.addActionListener(ev -> saveState(false));
+    saveasprojectitem.addActionListener(ev -> saveState(true));
 
     exititem.addActionListener(ev -> {
       if (!state.isSaved()) {
@@ -254,7 +429,7 @@ public class JSnowball {
           return;
         }
         if (result == JOptionPane.YES_OPTION) {
-          if (!saveState()) {
+          if (!saveState(false)) {
             return;
           }
         }
@@ -281,7 +456,6 @@ public class JSnowball {
 
     addAuthorItem.addActionListener(ev -> {
       Author au = state.createAuthor();
-      au.setState(state);
       au.setLastName("New");
       au.setFirstName("Author");
       tabbedPane.setSelectedIndex(1);
@@ -296,6 +470,13 @@ public class JSnowball {
       journalList.setSelectedIndex(state.getJournalList().indexOf(jo));
     });
 
+    addTagItem.addActionListener(ev -> {
+      Tag ta = state.createTag();
+      ta.setName("New tag");
+      tabbedPane.setSelectedIndex(3);
+      tagList.setSelectedIndex(state.getTagList().indexOf(ta));
+    });
+
     aboutitem.addActionListener(ev -> JOptionPane.showMessageDialog(frame,
         "<html><center>JSnowball<br/><br/>Copyright (C) 2021 Marcus Dansarie</center></html>",
         "About JSnowball", JOptionPane.INFORMATION_MESSAGE));
@@ -307,10 +488,12 @@ public class JSnowball {
     JScrollPane articleScroll = new JScrollPane(articleList, vsbPolicy, hsbPolicy);
     JScrollPane authorScroll = new JScrollPane(authorList, vsbPolicy, hsbPolicy);
     JScrollPane journalScroll = new JScrollPane(journalList, vsbPolicy, hsbPolicy);
+    JScrollPane tagScroll = new JScrollPane(tagList, vsbPolicy, hsbPolicy);
 
     tabbedPane.addTab("Articles", articleScroll);
     tabbedPane.addTab("Authors", authorScroll);
     tabbedPane.addTab("Journals", journalScroll);
+    tabbedPane.addTab("Tags", tagScroll);
 
     tabbedPane.addChangeListener(ev -> {
       switch (tabbedPane.getSelectedIndex()) {
@@ -323,6 +506,8 @@ public class JSnowball {
         case 2:
           leftSplitPane.setBottomComponent(journalScrollPane);
           break;
+        case 3:
+          leftSplitPane.setBottomComponent(tagScrollPane);
         default:
           break;
       }
@@ -354,6 +539,15 @@ public class JSnowball {
         journalPanel.setItem(state.getJournalList().get(idx));
       }
     });
+
+    tagList.addListSelectionListener(ev -> {
+      int idx = tagList.getSelectedIndex();
+      if (idx < 0) {
+        tagPanel.setItem(null);
+      } else {
+        tagPanel.setItem(state.getTagList().get(idx));
+      }
+    });
   }
 
   private void createLeftSplitPane() {
@@ -363,14 +557,21 @@ public class JSnowball {
   }
 
   private void createRightTabbedPane() {
+    JTable articleTable = new JTable(articleTableModel);
     JTable authorTable = new JTable(authorTableModel);
+    JTable journalTable = new JTable(journalTableModel);
+    JTable tagTable = new JTable(tagTableModel);
+    articleTable.setAutoCreateRowSorter(true);
+    authorTable.setAutoCreateRowSorter(true);
+    journalTable.setAutoCreateRowSorter(true);
+    tagTable.setAutoCreateRowSorter(true);
 
     rightTabbedPane.add(new JPanel(), "Article graph");
     rightTabbedPane.add(new JPanel(), "Author graph");
-    rightTabbedPane.add(new JPanel(), "Articles");
+    rightTabbedPane.add(new JScrollPane(articleTable), "Articles");
     rightTabbedPane.add(new JScrollPane(authorTable), "Authors");
-    rightTabbedPane.add(new JPanel(), "Journals");
-    rightTabbedPane.add(new JPanel(), "Tags");
+    rightTabbedPane.add(new JScrollPane(journalTable), "Journals");
+    rightTabbedPane.add(new JScrollPane(tagTable), "Tags");
     rightTabbedPane.add(new JPanel(), "Years");
   }
 
@@ -477,6 +678,9 @@ public class JSnowball {
         continue;
       }
       File fi = new File(path);
+      if (!fi.exists()) {
+        continue;
+      }
       JMenuItem recentItem = new JMenuItem(path);
       recentItem.addActionListener(ev -> {
         if (!state.isSaved()) {
@@ -490,6 +694,7 @@ public class JSnowball {
             ObjectInputStream ois = new ObjectInputStream(fis)) {
           SnowballState newState = (SnowballState)ois.readObject();
           setState(newState);
+          currentFile = fi;
         } catch (ClassCastException | ClassNotFoundException | IOException ex) {
           JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the "
               + "project file.", "File error", JOptionPane.ERROR_MESSAGE);
@@ -542,6 +747,20 @@ public class JSnowball {
     @Override
     public void intervalRemoved(ListDataEvent ev) {
       fireTableRowsDeleted(ev.getIndex0(), ev.getIndex1());
+    }
+
+    @Override
+    public int getColumnCount() {
+      return 2;
+    }
+
+    @Override
+    public Class<?> getColumnClass(int col) {
+      switch (col) {
+        case 0: return String.class;
+        case 1: return Integer.class;
+        default: throw new IllegalArgumentException();
+      }
     }
   }
 

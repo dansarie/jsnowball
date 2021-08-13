@@ -20,9 +20,12 @@ public class SnowballState implements Serializable {
   private List<Article> articles = new ArrayList<>();
   private List<Author> authors = new ArrayList<>();
   private List<Journal> journals = new ArrayList<>();
+  private List<Tag> tags = new ArrayList<>();
   private Map<Article, List<Article>> references = new HashMap<>();
+  private Map<Article, List<Tag>> articleTags = new HashMap<>();
   private Map<Article, SnowballListModel<Article>> referenceListModels = new HashMap<>();
   private Map<Article, SnowballListModel<Article>> referencedByListModels = new HashMap<>();
+  private Map<Article, SnowballListModel<Tag>> articleTagListModels = new HashMap<>();
   private boolean saved = true;
 
   public SnowballState() {
@@ -41,9 +44,16 @@ public class SnowballState implements Serializable {
       addArticle(art);
     }
 
+    for (Tag tag : sp.tags) {
+      addTag(tag);
+    }
+
     for (int i = 0; i < sp.articles.length; i++) {
       for (Article reference : sp.references[i]) {
         addReference(sp.articles[i], reference);
+      }
+      for (Tag tag : sp.articleTags[i]) {
+        addTag(sp.articles[i], tag);
       }
     }
   }
@@ -84,6 +94,18 @@ public class SnowballState implements Serializable {
     }
   };
 
+  private SnowballListModel<Tag> tagListModel = new SnowballListModel<Tag>() {
+    @Override
+    public Tag getElementAt(int idx) {
+      return tags.get(idx);
+    }
+
+    @Override
+    public int getSize() {
+      return tags.size();
+    }
+  };
+
   public boolean isSaved() {
     return saved;
   }
@@ -94,7 +116,76 @@ public class SnowballState implements Serializable {
     return art;
   }
 
+  public void removeArticle(Article art) {
+    int idx = articles.indexOf(art);
+    if (idx < 0) {
+      return;
+    }
+    articles.remove(art);
+    references.remove(art);
+    articleTags.remove(art);
+    referenceListModels.remove(art);
+    referencedByListModels.remove(art);
+    articleTagListModels.remove(art);
+    art.setState(null);
+    saved = false;
+    articleListModel.fireRemoved(idx);
+  }
+
+  public void removeAuthor(Author au) {
+    int idx = authors.indexOf(au);
+    if (idx < 0) {
+      return;
+    }
+    for (Article art : new ArrayList<>(articles)) {
+      if (art.getAuthors().contains(au)) {
+        art.removeAuthor(au);
+      }
+    }
+    authors.remove(idx);
+    au.setState(null);
+    saved = false;
+    authorListModel.fireRemoved(idx);
+  }
+
+  public void removeJournal(Journal jo) {
+    int idx = journals.indexOf(jo);
+    if (idx < 0) {
+      return;
+    }
+    for (Article art : new ArrayList<>(articles)) {
+      if (art.getJournal() == jo) {
+        art.setJournal(null);
+      }
+    }
+    journals.remove(idx);
+    jo.setState(null);
+    saved = false;
+    journalListModel.fireRemoved(idx);
+  }
+
+  public void removeTag(Tag tag) {
+    int idx = tags.indexOf(tag);
+    if (idx < 0) {
+      return;
+    }
+    for (Article art : articles) {
+      int tagidx = articleTags.get(art).indexOf(tag);
+      if (tagidx >= 0) {
+        articleTags.get(art).remove(tagidx);
+        articleTagListModels.get(art).fireRemoved(tagidx);
+      }
+    }
+    tags.remove(idx);
+    tag.setState(null);
+    saved = false;
+    tagListModel.fireRemoved(idx);
+  }
+
   private void addArticle(Article art) {
+    if (articles.contains(art)) {
+      return;
+    }
     for (Author au : art.getAuthors()) {
       if (!authors.contains(au)) {
         throw new IllegalStateException("Invariant violated: unknown article author.");
@@ -104,6 +195,7 @@ public class SnowballState implements Serializable {
     articles.add(art);
     Collections.sort(articles);
     references.put(art, new ArrayList<>());
+    articleTags.put(art, new ArrayList<>());
     referenceListModels.put(art, new SnowballListModel<Article>() {
       @Override
       public Article getElementAt(int idx) {
@@ -116,27 +208,70 @@ public class SnowballState implements Serializable {
       }
     });
     referencedByListModels.put(art, new SnowballListModel<Article>() {
-      private List<Article> getElements() {
-        ArrayList<Article> referencing = new ArrayList<>();
-        for (Article a : articles) {
-          if (references.get(a).contains(art)) {
-            referencing.add(a);
-          }
-        }
-        return referencing;
-      }
 
       @Override
       public Article getElementAt(int idx) {
-        return getElements().get(idx);
+        return getReferencedByList(art).get(idx);
       }
 
       @Override
       public int getSize() {
-        return getElements().size();
+        return getReferencedByList(art).size();
+      }
+    });
+    articleTagListModels.put(art, new SnowballListModel<Tag>() {
+      @Override
+      public Tag getElementAt(int idx) {
+        return articleTags.get(art).get(idx);
+      }
+
+      @Override
+      public int getSize() {
+        return articleTags.get(art).size();
       }
     });
     articleListModel.fireAdded(articles.indexOf(art));
+  }
+
+  public void mergeAuthors(Author a1, Author a2) {
+    if (Objects.requireNonNull(a1) == Objects.requireNonNull(a2) ||
+        !authors.contains(a1) || !authors.contains(a2)) {
+      throw new IllegalArgumentException();
+    }
+    for (Article art : getArticleList(a2)) {
+      art.addAuthor(a1);
+      art.removeAuthor(a2);
+    }
+    removeAuthor(a2);
+  }
+
+  public void mergeJournals(Journal a1, Journal a2) {
+    if (Objects.requireNonNull(a1) == Objects.requireNonNull(a2) ||
+        !journals.contains(a1) || !journals.contains(a2)) {
+      throw new IllegalArgumentException();
+    }
+    for (Article art : new ArrayList<>(articles)) {
+      if (art.getJournal() == a2) {
+        art.setJournal(a1);
+      }
+    }
+    removeJournal(a2);
+  }
+
+  public void mergeTags(Tag t1, Tag t2) {
+    if (Objects.requireNonNull(t1) == Objects.requireNonNull(t2) ||
+        !tags.contains(t1) || !tags.contains(t2)) {
+      throw new IllegalArgumentException();
+    }
+    for (Article art : new ArrayList<>(articles)) {
+      if (getTagList(art).contains(t2)) {
+        removeTag(art, t2);
+        if (!getTagList(art).contains(t1)) {
+          addTag(art, t1);
+        }
+      }
+    }
+    removeTag(t2);
   }
 
   public Author createAuthor() {
@@ -146,6 +281,9 @@ public class SnowballState implements Serializable {
   }
 
   private void addAuthor(Author au) {
+    if (authors.contains(au)) {
+      return;
+    }
     au.setState(this);
     authors.add(au);
     Collections.sort(authors);
@@ -159,10 +297,26 @@ public class SnowballState implements Serializable {
   }
 
   private void addJournal(Journal jo) {
+    if (journals.contains(jo)) {
+      return;
+    }
     jo.setState(this);
     journals.add(jo);
     Collections.sort(journals);
     journalListModel.fireAdded(journals.indexOf(jo));
+  }
+
+  public Tag createTag() {
+    Tag ta = new Tag();
+    addTag(ta);
+    return ta;
+  }
+
+  private void addTag(Tag ta) {
+    ta.setState(this);
+    tags.add(ta);
+    Collections.sort(tags);
+    tagListModel.fireAdded(tags.indexOf(ta));
   }
 
   public Author getAuthorFromStrings(String firstName, String lastName) {
@@ -222,6 +376,14 @@ public class SnowballState implements Serializable {
     return Collections.unmodifiableList(journals);
   }
 
+  public List<Tag> getTagList() {
+    return Collections.unmodifiableList(tags);
+  }
+
+  public List<Tag> getTagList(Article art) {
+    return Collections.unmodifiableList(articleTags.get(art));
+  }
+
   public List<Article> getReferenceList(Article art) {
     return Collections.unmodifiableList(references.get(art));
   }
@@ -238,12 +400,50 @@ public class SnowballState implements Serializable {
     return journalListModel;
   }
 
+  public ListModel<Tag> getTagListModel() {
+    return tagListModel;
+  }
+
+  public ListModel<Tag> getTagListModel(Article art) {
+    return articleTagListModels.get(art);
+  }
+
+  public void addTag(Article art, Tag tag) {
+    List<Tag> tags = articleTags.get(art);
+    if (!tags.contains(tag)) {
+      tags.add(Objects.requireNonNull(tag));
+      Collections.sort(tags);
+      articleTagListModels.get(art).fireAdded(tags.indexOf(tag));
+      updated(art);
+    }
+  }
+
+  public void removeTag(Article art, Tag tag) {
+    List<Tag> tags = articleTags.get(art);
+    int idx = tags.indexOf(tag);
+    if (idx >= 0) {
+      tags.remove(idx);
+      tag.setState(null);
+      articleTagListModels.get(art).fireRemoved(idx);
+    }
+  }
+
   public ListModel<Article> getReferenceListModel(Article art) {
     return referenceListModels.get(art);
   }
 
   public ListModel<Article> getReferencedByListModel(Article art) {
     return referencedByListModels.get(art);
+  }
+
+  public List<Article> getReferencedByList(Article art) {
+    ArrayList<Article> referencing = new ArrayList<>();
+    for (Article a : articles) {
+      if (references.get(a).contains(art)) {
+        referencing.add(a);
+      }
+    }
+    return referencing;
   }
 
   public void addReference(Article art, Article reference) {
@@ -297,6 +497,15 @@ public class SnowballState implements Serializable {
     }
   }
 
+  void updated(Tag ta) {
+    int idx = tags.indexOf(ta);
+    if (idx >= 0) {
+      saved = false;
+      Collections.sort(tags);
+      tagListModel.fireChanged(0, journals.size() - 1);
+    }
+  }
+
   private abstract class SnowballListModel<E> implements ListModel<E> {
     private Set<ListDataListener> listeners = new HashSet<>();
 
@@ -346,18 +555,27 @@ public class SnowballState implements Serializable {
     private Article[] articles;
     private Author[] authors;
     private Journal[] journals;
+    private Tag[] tags;
     private Article[][] references;
+    private Tag[][] articleTags;
 
     private SerializationProxy(SnowballState st) {
       articles = st.articles.toArray(new Article[st.articles.size()]);
       authors = st.authors.toArray(new Author[st.authors.size()]);
       journals = st.journals.toArray(new Journal[st.journals.size()]);
+      tags = st.tags.toArray(new Tag[st.tags.size()]);
       references = new Article[articles.length][];
+      articleTags = new Tag[articles.length][];
       for (int i = 0; i < articles.length; i++) {
         List<Article> refs = st.getReferenceList(articles[i]);
+        List<Tag> tags = st.getTagList(articles[i]);
         references[i] = new Article[refs.size()];
+        articleTags[i] = new Tag[tags.size()];
         for (int j = 0; j < refs.size(); j++) {
           references[i][j] = refs.get(j);
+        }
+        for (int j = 0; j < tags.size(); j++) {
+          articleTags[i][j] = tags.get(j);
         }
       }
     }

@@ -20,6 +20,6 @@ public abstract class SnowballStateMember implements Comparable<SnowballStateMem
   }
 
   public void setNotes(String notes) {
-    this.notes = Objects.requireNonNull(notes);
+    this.notes = Objects.requireNonNullElse(notes, "");
   }
 }

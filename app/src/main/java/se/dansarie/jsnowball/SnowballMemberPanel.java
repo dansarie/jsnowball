@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -61,6 +62,8 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
       ((JList<?>)childComp).setVisibleRowCount(6);
       gb.weighty = 1;
       gb.fill = GridBagConstraints.BOTH;
+    } else if (childComp instanceof JButton) {
+      gb.fill = GridBagConstraints.NONE;
     }
     gb.anchor = GridBagConstraints.NORTHWEST;
     gb.gridx = 1;
