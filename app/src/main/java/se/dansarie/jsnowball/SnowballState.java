@@ -230,7 +230,8 @@ public class SnowballState implements Serializable {
         return articleTags.get(art).size();
       }
     });
-    articleListModel.fireAdded(articles.indexOf(art));
+    int idx = articles.indexOf(art);
+    articleListModel.fireChanged(idx, idx);
   }
 
   public void mergeAuthors(Author a1, Author a2) {

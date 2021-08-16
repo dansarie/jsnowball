@@ -42,29 +42,6 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 
 public class JSnowball {
-  private AbstractAction exitAction = new AbstractAction("Quit") {
-    {
-      putValue(Action.ACCELERATOR_KEY,
-          KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
-    }
-    public void actionPerformed(ActionEvent ev) {
-      if (!state.isSaved()) {
-        int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
-            + "Do you wish to save it before quitting?", "Quit", JOptionPane.YES_NO_CANCEL_OPTION);
-        if (result == JOptionPane.CANCEL_OPTION) {
-          return;
-        }
-        if (result == JOptionPane.YES_OPTION) {
-          if (!saveState(false)) {
-            return;
-          }
-        }
-      }
-      frame.setVisible(false);
-      frame.dispose();
-    }
-  };
-
   private ArticlePanel articlePanel = new ArticlePanel();
   private AuthorPanel authorPanel = new AuthorPanel();
   private JournalPanel journalPanel = new JournalPanel();
@@ -95,12 +72,154 @@ public class JSnowball {
   private ListSelectionWatcher<Tag> tagSelectionWatcher;
   private File currentFile = null;
 
+  private Action exitAction = new AbstractAction("Quit") {
+    {
+      putValue(Action.ACCELERATOR_KEY,
+          KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      if (saveState(true, false)) {
+        frame.setVisible(false);
+        frame.dispose();
+      }
+    }
+  };
+
+  private Action newProjectAction = new AbstractAction("New project") {
+    {
+      putValue(Action.ACCELERATOR_KEY,
+          KeyStroke.getKeyStroke(KeyEvent.VK_N, KeyEvent.CTRL_DOWN_MASK));
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      if (saveState(true, false)) {
+        setState(new SnowballState());
+      }
+    }
+  };
+
+  private Action openProjectAction = new AbstractAction("Open project...") {
+    {
+      putValue(Action.ACCELERATOR_KEY,
+          KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      if (!saveState(true, false)) {
+        return;
+      }
+      JFileChooser chooser = new JFileChooser();
+      chooser.setCurrentDirectory(getDirectoryPreference());
+      if (chooser.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
+        return;
+      }
+      File fi = chooser.getSelectedFile();
+      if (fi == null) {
+        return;
+      }
+      saveDirectoryPreference(fi);
+      updateRecentFiles(fi);
+      try (FileInputStream fis = new FileInputStream(fi);
+          ObjectInputStream ois = new ObjectInputStream(fis)) {
+        SnowballState newState = (SnowballState)ois.readObject();
+        setState(newState);
+        currentFile = fi;
+      } catch (ClassCastException | ClassNotFoundException | IOException ex) {
+        JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
+            + " file.", "File error", JOptionPane.ERROR_MESSAGE);
+      }
+    }
+  };
+
+  private Action saveAction = new AbstractAction("Save project") {
+    {
+      putValue(Action.ACCELERATOR_KEY,
+          KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK));
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      saveState(false, false);
+    }
+  };
+
+  private Action saveAsAction = new AbstractAction("Save project as...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      saveState(false, true);
+    }
+  };
+
+  private Action articleFromDoiAction = new AbstractAction("Add article from DOI...") {
+    {
+      putValue(Action.ACCELERATOR_KEY,
+          KeyStroke.getKeyStroke(KeyEvent.VK_D, KeyEvent.CTRL_DOWN_MASK));
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      String doi = JOptionPane.showInputDialog(frame, "Enter a DOI",
+          "Create article from DOI", JOptionPane.QUESTION_MESSAGE);
+      if (doi == null) {
+        return;
+      }
+      Article.fromDoi(state, doi);
+    }
+  };
+
+  private Action addArticleAction = new AbstractAction("New article") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      Article art = state.createArticle();
+      art.setTitle("New article");
+      tabbedPane.setSelectedIndex(0);
+      articleList.setSelectedIndex(state.getArticleList().indexOf(art));
+    }
+  };
+
+  private Action addAuthorAction = new AbstractAction("New author") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      Author au = state.createAuthor();
+      au.setLastName("New");
+      au.setFirstName("Author");
+      tabbedPane.setSelectedIndex(1);
+      authorList.setSelectedIndex(state.getAuthorList().indexOf(au));
+    }
+  };
+
+  private Action addJournalAction = new AbstractAction("New journal") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      Journal jo = state.createJournal();
+      jo.setState(state);
+      jo.setName("New journal");
+      tabbedPane.setSelectedIndex(2);
+    journalList.setSelectedIndex(state.getJournalList().indexOf(jo));
+    }
+  };
+
+  private Action addTagAction = new AbstractAction("New tag") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      Tag ta = state.createTag();
+      ta.setName("New tag");
+      tabbedPane.setSelectedIndex(3);
+      tagList.setSelectedIndex(state.getTagList().indexOf(ta));
+    }
+  };
+
+  private Action showAboutAction = new AbstractAction("About JSnowball...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      JOptionPane.showMessageDialog(frame,
+          "<html><center>JSnowball<br/><br/>Copyright (C) 2021 Marcus Dansarie</center></html>",
+          "About JSnowball", JOptionPane.INFORMATION_MESSAGE);
+    }
+  };
+
   private SnowballTableModel articleTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      if (state == null) {
-        return 0;
-      }
       return state.getArticleList().size();
     }
 
@@ -127,9 +246,6 @@ public class JSnowball {
   private SnowballTableModel authorTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      if (state == null) {
-        return 0;
-      }
       return state.getAuthorList().size();
     }
 
@@ -186,9 +302,6 @@ public class JSnowball {
   private SnowballTableModel journalTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      if (state == null) {
-        return 0;
-      }
       return state.getJournalList().size();
     }
 
@@ -245,9 +358,6 @@ public class JSnowball {
   private SnowballTableModel tagTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      if (state == null) {
-        return 0;
-      }
       return state.getTagList().size();
     }
 
@@ -284,8 +394,8 @@ public class JSnowball {
   };
 
   private JSnowball() {
-    createFrame();
     setState(new SnowballState());
+    createFrame();
   }
 
   private void setState(SnowballState state) {
@@ -322,7 +432,20 @@ public class JSnowball {
     tagTableModel.setState(state);
   }
 
-  private boolean saveState(boolean showDialog) {
+  private boolean saveState(boolean askFirst, boolean showDialog) {
+    if (askFirst) {
+      if (state.isSaved()) {
+        return true;
+      }
+      int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
+            + "Do you wish to save it?", "Quit", JOptionPane.YES_NO_CANCEL_OPTION);
+      if (result == JOptionPane.CANCEL_OPTION) {
+        return false;
+      }
+      if (result == JOptionPane.NO_OPTION) {
+        return true;
+      }
+    }
     File fi;
     if (showDialog || currentFile == null) {
       JFileChooser chooser = new JFileChooser();
@@ -353,10 +476,10 @@ public class JSnowball {
   }
 
   private void createMenuBar() {
-    JMenuItem newprojectitem = new JMenuItem("New project");
-    JMenuItem openprojectitem = new JMenuItem("Open project...");
-    JMenuItem saveprojectitem = new JMenuItem("Save project");
-    JMenuItem saveasprojectitem = new JMenuItem("Save project as...");
+    JMenuItem newprojectitem = new JMenuItem(newProjectAction);
+    JMenuItem openprojectitem = new JMenuItem(openProjectAction);
+    JMenuItem saveprojectitem = new JMenuItem(saveAction);
+    JMenuItem saveasprojectitem = new JMenuItem(saveAsAction);
     JMenuItem exititem = new JMenuItem(exitAction);
 
     createRecentFilesMenu();
@@ -373,11 +496,11 @@ public class JSnowball {
     filemenu.add(exititem);
 
     JMenu operationsMenu = new JMenu("Operations");
-    JMenuItem addArticleDoi = new JMenuItem("Add article from DOI...");
-    JMenuItem addArticleManually = new JMenuItem("New article");
-    JMenuItem addAuthorItem = new JMenuItem("New author");
-    JMenuItem addJournalItem = new JMenuItem("New journal");
-    JMenuItem addTagItem = new JMenuItem("New tag");
+    JMenuItem addArticleDoi = new JMenuItem(articleFromDoiAction);
+    JMenuItem addArticleManually = new JMenuItem(addArticleAction);
+    JMenuItem addAuthorItem = new JMenuItem(addAuthorAction);
+    JMenuItem addJournalItem = new JMenuItem(addJournalAction);
+    JMenuItem addTagItem = new JMenuItem(addTagAction);
     operationsMenu.add(addArticleManually);
     operationsMenu.add(addArticleDoi);
     operationsMenu.addSeparator();
@@ -387,108 +510,12 @@ public class JSnowball {
     operationsMenu.addSeparator();
     operationsMenu.add(addTagItem);
 
-    JMenuItem aboutitem = new JMenuItem("About JSnowball...");
+    JMenuItem aboutitem = new JMenuItem(showAboutAction);
     JMenu helpmenu = new JMenu("Help");
     helpmenu.add(aboutitem);
     menubar.add(filemenu);
     menubar.add(operationsMenu);
     menubar.add(helpmenu);
-
-    KeyStroke stroke = KeyStroke.getKeyStroke(KeyEvent.VK_N, KeyEvent.CTRL_DOWN_MASK);
-    newprojectitem.setAccelerator(stroke);
-    stroke = KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK);
-    openprojectitem.setAccelerator(stroke);
-    stroke = KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK);
-    saveprojectitem.setAccelerator(stroke);
-    stroke = KeyStroke.getKeyStroke(KeyEvent.VK_D, KeyEvent.CTRL_DOWN_MASK);
-    addArticleDoi.setAccelerator(stroke);
-
-    newprojectitem.addActionListener(ev -> {
-      if (!state.isSaved()) {
-        int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
-            + "Do you wish to destroy unsaved work?", "New project", JOptionPane.YES_NO_OPTION);
-        if (result != JOptionPane.YES_OPTION) {
-          return;
-        }
-      }
-      setState(new SnowballState());
-    });
-
-    openprojectitem.addActionListener(ev -> {
-      if (!state.isSaved()) {
-        int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
-            + "Do you wish to destroy unsaved work?", "Open project", JOptionPane.YES_NO_OPTION);
-        if (result != JOptionPane.YES_OPTION) {
-          return;
-        }
-      }
-      JFileChooser chooser = new JFileChooser();
-      chooser.setCurrentDirectory(getDirectoryPreference());
-      if (chooser.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
-        return;
-      }
-      File fi = chooser.getSelectedFile();
-      if (fi == null) {
-        return;
-      }
-      saveDirectoryPreference(fi);
-      updateRecentFiles(fi);
-      try (FileInputStream fis = new FileInputStream(fi);
-          ObjectInputStream ois = new ObjectInputStream(fis)) {
-        SnowballState newState = (SnowballState)ois.readObject();
-        setState(newState);
-        currentFile = fi;
-      } catch (ClassCastException | ClassNotFoundException | IOException ex) {
-        JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
-            + " file.", "File error", JOptionPane.ERROR_MESSAGE);
-      }
-    });
-
-    saveprojectitem.addActionListener(ev -> saveState(false));
-    saveasprojectitem.addActionListener(ev -> saveState(true));
-
-    addArticleDoi.addActionListener(ev -> {
-      String doi = JOptionPane.showInputDialog(frame, "Enter a DOI",
-          "Create article from DOI", JOptionPane.QUESTION_MESSAGE);
-      if (doi == null) {
-        return;
-      }
-      Article.fromDoi(state, doi);
-    });
-
-    addArticleManually.addActionListener(ev -> {
-      Article art = state.createArticle();
-      art.setTitle("New article");
-      tabbedPane.setSelectedIndex(0);
-      articleList.setSelectedIndex(state.getArticleList().indexOf(art));
-    });
-
-    addAuthorItem.addActionListener(ev -> {
-      Author au = state.createAuthor();
-      au.setLastName("New");
-      au.setFirstName("Author");
-      tabbedPane.setSelectedIndex(1);
-      authorList.setSelectedIndex(state.getAuthorList().indexOf(au));
-    });
-
-    addJournalItem.addActionListener(ev -> {
-      Journal jo = state.createJournal();
-      jo.setState(state);
-      jo.setName("New journal");
-      tabbedPane.setSelectedIndex(2);
-      journalList.setSelectedIndex(state.getJournalList().indexOf(jo));
-    });
-
-    addTagItem.addActionListener(ev -> {
-      Tag ta = state.createTag();
-      ta.setName("New tag");
-      tabbedPane.setSelectedIndex(3);
-      tagList.setSelectedIndex(state.getTagList().indexOf(ta));
-    });
-
-    aboutitem.addActionListener(ev -> JOptionPane.showMessageDialog(frame,
-        "<html><center>JSnowball<br/><br/>Copyright (C) 2021 Marcus Dansarie</center></html>",
-        "About JSnowball", JOptionPane.INFORMATION_MESSAGE));
   }
 
   private void createListPane() {
