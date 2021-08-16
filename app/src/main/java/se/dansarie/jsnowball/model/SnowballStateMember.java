@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.model;
 
 import java.util.Objects;
 
@@ -11,7 +11,7 @@ public abstract class SnowballStateMember implements Comparable<SnowballStateMem
    return state;
   }
 
-  void setState(SnowballState state) {
+  public void setState(SnowballState state) {
     this.state = state;
   }
 

@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.gui;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;

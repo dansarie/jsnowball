@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.gui;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
@@ -10,6 +10,8 @@ import javax.swing.text.JTextComponent;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
+import se.dansarie.jsnowball.model.Tag;
+
 public class TagPanel extends SnowballMemberPanel<Tag> {
 
   private JTextField name = new JTextField();
@@ -17,7 +19,7 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
   private JButton deleteButton = new JButton("Remove tag");
   private JButton mergeButton = new JButton("Merge tags");
 
-  TagPanel() {
+  public TagPanel() {
     addComponent("Name", name);
     addComponent("Notes", new JScrollPane(notes));
     addComponent("", deleteButton);

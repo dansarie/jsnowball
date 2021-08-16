@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.model;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -167,7 +167,7 @@ public class Article extends SnowballStateMember implements Serializable {
     }
   }
 
-  static Article fromDoi(SnowballState state, String doi) {
+  public static Article fromDoi(SnowballState state, String doi) {
     return parseDoiJson(state, getDoiJson(doi));
   }
 

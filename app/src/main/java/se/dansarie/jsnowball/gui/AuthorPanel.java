@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.gui;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;
@@ -11,6 +11,9 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.text.JTextComponent;
 
+import se.dansarie.jsnowball.model.Article;
+import se.dansarie.jsnowball.model.Author;
+
 public class AuthorPanel extends SnowballMemberPanel<Author> {
 
   private JTextField firstName = new JTextField();
@@ -22,7 +25,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
   private JButton deleteButton = new JButton("Remove author");
   private JButton mergeButton = new JButton("Merge authors");
 
-  AuthorPanel() {
+  public AuthorPanel() {
     addComponent("First name", firstName);
     addComponent("Last name", lastName);
     addComponent("Organization name", organizationName);

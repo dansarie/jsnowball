@@ -41,6 +41,16 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 
+import se.dansarie.jsnowball.gui.ArticlePanel;
+import se.dansarie.jsnowball.gui.AuthorPanel;
+import se.dansarie.jsnowball.gui.JournalPanel;
+import se.dansarie.jsnowball.gui.TagPanel;
+import se.dansarie.jsnowball.model.Article;
+import se.dansarie.jsnowball.model.Author;
+import se.dansarie.jsnowball.model.Journal;
+import se.dansarie.jsnowball.model.SnowballState;
+import se.dansarie.jsnowball.model.Tag;
+
 public class JSnowball {
   private ArticlePanel articlePanel = new ArticlePanel();
   private AuthorPanel authorPanel = new AuthorPanel();

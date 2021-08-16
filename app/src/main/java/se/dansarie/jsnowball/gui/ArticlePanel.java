@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.gui;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -25,6 +25,12 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 import javax.swing.text.JTextComponent;
+
+import se.dansarie.jsnowball.model.Article;
+import se.dansarie.jsnowball.model.Author;
+import se.dansarie.jsnowball.model.Journal;
+import se.dansarie.jsnowball.model.SnowballState;
+import se.dansarie.jsnowball.model.Tag;
 
 public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDataListener {
 
@@ -84,7 +90,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
         tag -> getItem().getState().addTag(getItem(), tag),
         tag -> getItem().getState().removeTag(getItem(), tag));
 
-  ArticlePanel() {
+  public ArticlePanel() {
     JScrollPane authorScrollPane = new JScrollPane(authors);
     JScrollPane notesScrollPane = new JScrollPane(notes);
     JScrollPane tagsScrollPane = new JScrollPane(tags);

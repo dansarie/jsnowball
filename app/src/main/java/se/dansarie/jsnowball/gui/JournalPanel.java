@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.gui;
 
 import java.util.ArrayList;
 
@@ -11,6 +11,8 @@ import javax.swing.text.JTextComponent;
 
 import java.util.function.Consumer;
 
+import se.dansarie.jsnowball.model.Journal;
+
 public class JournalPanel extends SnowballMemberPanel<Journal> {
 
   private JTextField name = new JTextField();
@@ -19,7 +21,7 @@ public class JournalPanel extends SnowballMemberPanel<Journal> {
   private JButton deleteButton = new JButton("Remove journal");
   private JButton mergeButton = new JButton("Merge journals");
 
-  JournalPanel() {
+  public JournalPanel() {
     addComponent("Name", name);
     addComponent("ISSN", issn);
     addComponent("Notes", new JScrollPane(notes));

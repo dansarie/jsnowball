@@ -1,4 +1,4 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.model;
 
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;

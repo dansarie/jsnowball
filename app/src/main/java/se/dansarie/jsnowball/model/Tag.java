@@ -1,44 +1,33 @@
-package se.dansarie.jsnowball;
+package se.dansarie.jsnowball.model;
 
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Objects;
 
-public class Journal extends SnowballStateMember implements Serializable {
+public class Tag extends SnowballStateMember implements Serializable {
+
   private String name = null;
-  private String issn = null;
 
-  Journal() {
+  Tag() {
   }
 
-  private Journal(SerializationProxy sp) {
+  private Tag(SerializationProxy sp) {
     name = sp.name;
-    issn = sp.issn;
     setNotes(sp.notes);
   }
 
-  public String getIssn() {
-    return issn;
+  public void setName(String name) {
+    this.name = name;
+    state.updated(this);
   }
 
   public String getName() {
     return name;
   }
 
-  public void setName(String name) {
-    this.name = Objects.requireNonNullElse(name, "");
-    state.updated(this);
-  }
-
-  public void setIssn(String issn) {
-    this.issn = Objects.requireNonNullElse(issn, "");
-    state.updated(this);
-  }
-
   @Override
   public int compareTo(SnowballStateMember other) {
-    Journal o = (Journal)other;
+    Tag o = (Tag)other;
     if (getName() == null) {
       if (o.getName() == null) {
         return 0;
@@ -53,7 +42,7 @@ public class Journal extends SnowballStateMember implements Serializable {
 
   @Override
   public String toString() {
-    return getName();
+    return name;
   }
 
   private Object writeReplace() {
@@ -65,19 +54,17 @@ public class Journal extends SnowballStateMember implements Serializable {
   }
 
   private static class SerializationProxy implements Serializable {
-    static final long serialVersionUID = 3612664749150805684L;
+    static final long serialVersionUID = 4350613725999012654L;
     private String name;
-    private String issn;
     private String notes;
 
-    private SerializationProxy(Journal jo) {
-      name = jo.name;
-      issn = jo.issn;
-      notes = jo.getNotes();
+    private SerializationProxy(Tag ta) {
+      name = ta.name;
+      notes = ta.getNotes();
     }
 
     private Object readResolve() {
-      return new Journal(this);
+      return new Tag(this);
     }
   }
 }
