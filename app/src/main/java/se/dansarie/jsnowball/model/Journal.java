@@ -1,18 +1,18 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Journal extends SnowballStateMember implements Serializable {
+public class Journal extends SnowballStateMember {
   private String name = null;
   private String issn = null;
 
-  Journal() {
+  public Journal(SnowballState state) {
+    super(state);
   }
 
   private Journal(SerializationProxy sp) {
+    super(null);
     name = sp.name;
     issn = sp.issn;
     setNotes(sp.notes);
@@ -26,14 +26,30 @@ public class Journal extends SnowballStateMember implements Serializable {
     return name;
   }
 
+  public void merge(Journal merged) {
+    if (Objects.requireNonNull(merged) == this) {
+      throw new IllegalArgumentException("Attempted to merge author with itself.");
+    }
+    if (merged.getState() != getState()) {
+      throw new IllegalArgumentException("Attempted to merge authors belonging to different "
+          + "states.");
+    }
+    for (Article art : getState().getArticles()) {
+      if (art.getJournal() == merged) {
+        art.setJournal(this);
+      }
+    }
+    getState().removeMember(merged);
+  }
+
   public void setName(String name) {
     this.name = Objects.requireNonNullElse(name, "");
-    state.updated(this);
+    fireUpdated();
   }
 
   public void setIssn(String issn) {
     this.issn = Objects.requireNonNullElse(issn, "");
-    state.updated(this);
+    fireUpdated();
   }
 
   @Override
@@ -56,28 +72,26 @@ public class Journal extends SnowballStateMember implements Serializable {
     return getName();
   }
 
-  private Object writeReplace() {
+  SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
-    throw new InvalidObjectException("Use of serialization proxy required.");
+  void restoreFromProxy(SerializationProxy proxy) {
+    setIssn(proxy.issn);
+    setName(proxy.name);
+    setNotes(proxy.notes);
   }
 
-  private static class SerializationProxy implements Serializable {
+  static class SerializationProxy implements Serializable {
     static final long serialVersionUID = 3612664749150805684L;
-    private String name;
     private String issn;
+    private String name;
     private String notes;
 
     private SerializationProxy(Journal jo) {
-      name = jo.name;
       issn = jo.issn;
+      name = jo.name;
       notes = jo.getNotes();
-    }
-
-    private Object readResolve() {
-      return new Journal(this);
     }
   }
 }

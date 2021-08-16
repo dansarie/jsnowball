@@ -1,25 +1,38 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
-public class Author extends SnowballStateMember implements Serializable {
+
+public class Author extends SnowballStateMember {
   private String firstname;
   private String lastname;
   private String orgname;
   private String orcid;
 
-  Author() {
+  public Author(SnowballState state) {
+    super(state);
   }
 
   private Author(SerializationProxy sp) {
+    super(null);
     firstname = sp.firstname;
     lastname = sp.lastname;
     orgname = sp.orgname;
     orcid = sp.orcid;
     setNotes(sp.notes);
+  }
+
+  public List<Article> getArticles() {
+    ArrayList<Article> articles = new ArrayList<>();
+    for (Article art : getState().getArticles()) {
+      if (art.getAuthors().contains(this)) {
+        articles.add(art);
+      }
+    }
+    return articles;
   }
 
   public String getFirstName() {
@@ -38,24 +51,44 @@ public class Author extends SnowballStateMember implements Serializable {
     return orcid;
   }
 
+  public void merge(Author merged) {
+    if (Objects.requireNonNull(merged) == this) {
+      throw new IllegalArgumentException("Attempted to merge author with itself.");
+    }
+    if (merged.getState() != getState()) {
+      throw new IllegalArgumentException("Attempted to merge authors belonging to different "
+          + "states.");
+    }
+    for (Article art : getState().getArticles()) {
+      List<Author> authors = art.getAuthors();
+      if (authors.contains(merged)) {
+        art.removeAuthor(merged);
+        if (!authors.contains(this)) {
+          art.addAuthor(this);
+        }
+      }
+    }
+    getState().removeMember(merged);
+  }
+
   public void setFirstName(String name) {
     firstname = Objects.requireNonNullElse(name, "");
-    state.updated(this);
+    fireUpdated();
   }
 
   public void setLastName(String name) {
     lastname = Objects.requireNonNullElse(name, "");
-    state.updated(this);
+    fireUpdated();
   }
 
   public void setOrgName(String name) {
     orgname = Objects.requireNonNullElse(name, "");
-    state.updated(this);
+    fireUpdated();
   }
 
   public void setOrcId(String id) {
     orcid = Objects.requireNonNullElse(id, "");
-    state.updated(this);
+    fireUpdated();
   }
 
   @Override
@@ -91,32 +124,32 @@ public class Author extends SnowballStateMember implements Serializable {
     return getLastName() + ", " + getFirstName();
   }
 
-  private Object writeReplace() {
+  SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
-    throw new InvalidObjectException("Use of serialization proxy required.");
+  void restoreFromProxy(SerializationProxy proxy) {
+    setFirstName(proxy.firstname);
+    setLastName(proxy.lastname);
+    setNotes(proxy.notes);
+    setOrcId(proxy.orcid);
+    setOrgName(proxy.orgname);
   }
 
-  private static class SerializationProxy implements Serializable {
+  static class SerializationProxy implements Serializable {
     static final long serialVersionUID = 5154001552990566490L;
     private String firstname;
     private String lastname;
-    private String orgname;
-    private String orcid;
     private String notes;
+    private String orcid;
+    private String orgname;
 
     private SerializationProxy(Author au) {
       firstname = au.firstname;
       lastname = au.lastname;
-      orgname = au.orgname;
-      orcid = au.orgname;
       notes = au.getNotes();
-    }
-
-    private Object readResolve() {
-      return new Author(this);
+      orcid = au.orgname;
+      orgname = au.orgname;
     }
   }
 }

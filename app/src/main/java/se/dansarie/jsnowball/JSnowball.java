@@ -179,42 +179,41 @@ public class JSnowball {
   private Action addArticleAction = new AbstractAction("New article") {
     @Override
     public void actionPerformed(ActionEvent ev) {
-      Article art = state.createArticle();
+      Article art = new Article(state);
       art.setTitle("New article");
       tabbedPane.setSelectedIndex(0);
-      articleList.setSelectedIndex(state.getArticleList().indexOf(art));
+      articleList.setSelectedIndex(state.getArticles().indexOf(art));
     }
   };
 
   private Action addAuthorAction = new AbstractAction("New author") {
     @Override
     public void actionPerformed(ActionEvent ev) {
-      Author au = state.createAuthor();
+      Author au = new Author(state);
       au.setLastName("New");
       au.setFirstName("Author");
       tabbedPane.setSelectedIndex(1);
-      authorList.setSelectedIndex(state.getAuthorList().indexOf(au));
+      authorList.setSelectedIndex(state.getAuthors().indexOf(au));
     }
   };
 
   private Action addJournalAction = new AbstractAction("New journal") {
     @Override
     public void actionPerformed(ActionEvent ev) {
-      Journal jo = state.createJournal();
-      jo.setState(state);
+      Journal jo = new Journal(state);
       jo.setName("New journal");
       tabbedPane.setSelectedIndex(2);
-    journalList.setSelectedIndex(state.getJournalList().indexOf(jo));
+    journalList.setSelectedIndex(state.getJournals().indexOf(jo));
     }
   };
 
   private Action addTagAction = new AbstractAction("New tag") {
     @Override
     public void actionPerformed(ActionEvent ev) {
-      Tag ta = state.createTag();
+      Tag ta = new Tag(state);
       ta.setName("New tag");
       tabbedPane.setSelectedIndex(3);
-      tagList.setSelectedIndex(state.getTagList().indexOf(ta));
+      tagList.setSelectedIndex(state.getTags().indexOf(ta));
     }
   };
 
@@ -230,7 +229,7 @@ public class JSnowball {
   private SnowballTableModel articleTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      return state.getArticleList().size();
+      return state.getArticles().size();
     }
 
     @Override
@@ -244,10 +243,10 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Article art = state.getArticleList().get(row);
+      Article art = state.getArticles().get(row);
       switch (col) {
         case 0: return art.toString();
-        case 1: return Integer.valueOf(state.getReferencedByList(art).size());
+        case 1: return Integer.valueOf(art.getReferencesTo().size());
       }
       throw new IllegalArgumentException();
     }
@@ -256,7 +255,7 @@ public class JSnowball {
   private SnowballTableModel authorTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      return state.getAuthorList().size();
+      return state.getAuthors().size();
     }
 
     @Override
@@ -286,21 +285,21 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Author au = state.getAuthorList().get(row);
+      Author au = state.getAuthors().get(row);
       int i = 0;
       switch (col) {
         case 0: return au.toString();
         case 1:
-          for (Article art : state.getArticleList()) {
+          for (Article art : state.getArticles()) {
             if (art.getAuthors().contains(au)) {
               i += 1;
             }
           }
           return Integer.valueOf(i);
         case 2:
-          for (Article art : state.getArticleList()) {
+          for (Article art : state.getArticles()) {
             if (art.getAuthors().contains(au)) {
-              i += state.getReferencedByList(art).size();
+              i += art.getReferencesTo().size();
             }
           }
           return Integer.valueOf(i);
@@ -312,7 +311,7 @@ public class JSnowball {
   private SnowballTableModel journalTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      return state.getJournalList().size();
+      return state.getJournals().size();
     }
 
     @Override
@@ -342,21 +341,21 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Journal jo = state.getJournalList().get(row);
+      Journal jo = state.getJournals().get(row);
       int i = 0;
       switch (col) {
         case 0: return jo.toString();
         case 1:
-          for (Article art : state.getArticleList()) {
+          for (Article art : state.getArticles()) {
             if (art.getJournal() == jo) {
               i += 1;
             }
           }
           return Integer.valueOf(i);
         case 2:
-          for (Article art : state.getArticleList()) {
+          for (Article art : state.getArticles()) {
             if (art.getJournal() == jo) {
-              i += state.getReferencedByList(art).size();
+              i += art.getReferencesTo().size();
             }
           }
           return Integer.valueOf(i);
@@ -368,7 +367,7 @@ public class JSnowball {
   private SnowballTableModel tagTableModel = new SnowballTableModel() {
     @Override
     public int getRowCount() {
-      return state.getTagList().size();
+      return state.getTags().size();
     }
 
     @Override
@@ -387,13 +386,13 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Tag tag = state.getTagList().get(row);
+      Tag tag = state.getTags().get(row);
       switch (col) {
         case 0: return tag.toString();
         case 1:
           int i = 0;
-          for (Article art : state.getArticleList()) {
-            if (state.getTagList(art).contains(tag)) {
+          for (Article art : state.getArticles()) {
+            if (art.getTags().contains(tag)) {
               i += 1;
             }
           }
@@ -564,7 +563,7 @@ public class JSnowball {
       if (idx < 0) {
         articlePanel.setItem(null);
       } else {
-        articlePanel.setItem(state.getArticleList().get(idx));
+        articlePanel.setItem(state.getArticles().get(idx));
       }
     });
 
@@ -573,7 +572,7 @@ public class JSnowball {
       if (idx < 0) {
         authorPanel.setItem(null);
       } else {
-        authorPanel.setItem(state.getAuthorList().get(idx));
+        authorPanel.setItem(state.getAuthors().get(idx));
       }
     });
 
@@ -582,7 +581,7 @@ public class JSnowball {
       if (idx < 0) {
         journalPanel.setItem(null);
       } else {
-        journalPanel.setItem(state.getJournalList().get(idx));
+        journalPanel.setItem(state.getJournals().get(idx));
       }
     });
 
@@ -591,7 +590,7 @@ public class JSnowball {
       if (idx < 0) {
         tagPanel.setItem(null);
       } else {
-        tagPanel.setItem(state.getTagList().get(idx));
+        tagPanel.setItem(state.getTags().get(idx));
       }
     });
   }

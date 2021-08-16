@@ -30,14 +30,14 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
       if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this tag?",
           "Delete tag", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) ==
               JOptionPane.YES_OPTION) {
-            Tag art = getItem();
+            Tag tag = getItem();
             setItem(null);
-            art.getState().removeTag(art);
+            tag.remove();
           }
     });
 
     mergeButton.addActionListener(ev -> {
-      ArrayList<Tag> tags = new ArrayList<>(getItem().getState().getTagList());
+      ArrayList<Tag> tags = new ArrayList<>(getItem().getState().getTags());
       tags.remove(getItem());
       if (tags.size() == 0) {
         return;
@@ -48,7 +48,7 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
       if (tag == null) {
         return;
       }
-      getItem().getState().mergeTags(getItem(), tag);
+      getItem().merge(tag);
     });
   }
 

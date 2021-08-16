@@ -42,12 +42,12 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
               JOptionPane.YES_OPTION) {
             Author art = getItem();
             setItem(null);
-            art.getState().removeAuthor(art);
+            art.remove();
           }
     });
 
     mergeButton.addActionListener(ev -> {
-      ArrayList<Author> authors = new ArrayList<>(getItem().getState().getAuthorList());
+      ArrayList<Author> authors = new ArrayList<>(getItem().getState().getAuthors());
       authors.remove(getItem());
       if (authors.size() == 0) {
         return;
@@ -58,7 +58,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
       if (au == null) {
         return;
       }
-      getItem().getState().mergeAuthors(getItem(), au);
+      getItem().merge(au);
     });
   }
 
@@ -80,7 +80,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
     organizationName.setText(a.getOrgName());
     orcid.setText(a.getOrcId());
     notes.setText(a.getNotes());
-    articles.setListData(a.getState().getArticleList(a).toArray(new Article[0]));
+    articles.setListData(a.getArticles().toArray(new Article[0]));
     enableComponents();
   }
 

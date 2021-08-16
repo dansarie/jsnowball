@@ -2,17 +2,21 @@ package se.dansarie.jsnowball.model;
 
 import java.util.Objects;
 
-public abstract class SnowballStateMember implements Comparable<SnowballStateMember> {
-  protected SnowballState state = null;
-
+abstract class SnowballStateMember implements Comparable<SnowballStateMember> {
+  private SnowballState state = null;
   private String notes = "";
+
+  SnowballStateMember(SnowballState state) {
+    this.state = Objects.requireNonNull(state);
+    state.addMember(this);
+  }
+
+  protected void fireUpdated() {
+    state.fireUpdated(this);
+  }
 
   public SnowballState getState() {
    return state;
-  }
-
-  public void setState(SnowballState state) {
-    this.state = state;
   }
 
   public String getNotes() {
@@ -21,5 +25,9 @@ public abstract class SnowballStateMember implements Comparable<SnowballStateMem
 
   public void setNotes(String notes) {
     this.notes = Objects.requireNonNullElse(notes, "");
+  }
+
+  public void remove() {
+    state.removeMember(this);
   }
 }

@@ -61,34 +61,38 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
       if (idx == 0) {
         a.setJournal(null);
       }
-      Journal j = a.getState().getJournalList().get(idx - 1);
+      Journal j = a.getState().getJournals().get(idx - 1);
       a.setJournal(j);
     }
   };
 
   private AddRemovePreferencesListener<Author> authorsListener =
       new AddRemovePreferencesListener<>(authors, "author",
-        () -> getItem().getState().getAuthorList(),
+        () -> getItem().getState().getAuthors(),
         () -> getItem().getAuthors(),
         () -> authors.getSelectedValue(),
         au -> getItem().addAuthor(au),
         au -> getItem().removeAuthor(au));
 
   private AddRemovePreferencesListener<Article> referencesListener =
-      new AddRemovePreferencesListener<Article>(references, "reference",
-        () -> getItem().getState().getArticleList(),
-        () -> getItem().getState().getReferenceList(getItem()),
+      new AddRemovePreferencesListener<>(references, "reference",
+        () -> getItem().getState().getArticles(),
+        () -> {
+          List<Article> refs = new ArrayList<>(getItem().getReferences());
+          refs.add(getItem());
+          return refs;
+        },
         () -> references.getSelectedValue(),
-        ref -> getItem().getState().addReference(getItem(), ref),
-        ref -> getItem().getState().removeReference(getItem(), ref));
+        ref -> getItem().addReference(ref),
+        ref -> getItem().removeReference(ref));
 
   private AddRemovePreferencesListener<Tag> tagsListener =
       new AddRemovePreferencesListener<>(tags, "tag",
-        () -> getItem().getState().getTagList(),
-        () -> getItem().getState().getTagList(getItem()),
+        () -> getItem().getState().getTags(),
+        () -> getItem().getTags(),
         () -> tags.getSelectedValue(),
-        tag -> getItem().getState().addTag(getItem(), tag),
-        tag -> getItem().getState().removeTag(getItem(), tag));
+        tag -> getItem().addTag(tag),
+        tag -> getItem().removeTag(tag));
 
   public ArticlePanel() {
     JScrollPane authorScrollPane = new JScrollPane(authors);
@@ -123,7 +127,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
               JOptionPane.YES_OPTION) {
             Article art = getItem();
             setItem(null);
-            art.getState().removeArticle(art);
+            art.remove();
           }
     });
     importReferencesButton.addActionListener(ev -> getItem().importReferences());
@@ -159,9 +163,9 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     issue.setText(a.getIssue());
     pages.setText(a.getPages());
     notes.setText(a.getNotes());
-    tags.setModel(a.getState().getTagListModel(a));
-    references.setModel(a.getState().getReferenceListModel(a));
-    referencedBy.setModel(a.getState().getReferencedByListModel(a));
+    tags.setModel(a.getTagListModel());
+    references.setModel(a.getReferenceListModel());
+    referencedBy.setModel(a.getReferencesToListModel());
     enableComponents();
   }
 
@@ -212,7 +216,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     journal.removeActionListener(journalListener);
     journal.removeAllItems();
     journal.addItem("<No journal>");
-    for (Journal j : s.getJournalList()) {
+    for (Journal j : s.getJournals()) {
       String name = j.getName();
       journal.addItem(name);
       if (j == a.getJournal()) {

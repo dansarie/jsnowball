@@ -1,28 +1,50 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
 
-public class Tag extends SnowballStateMember implements Serializable {
+public class Tag extends SnowballStateMember {
 
   private String name = null;
 
-  Tag() {
+  public Tag(SnowballState state) {
+    super(state);
   }
 
   private Tag(SerializationProxy sp) {
+    super(null);
     name = sp.name;
     setNotes(sp.notes);
   }
 
-  public void setName(String name) {
-    this.name = name;
-    state.updated(this);
-  }
-
   public String getName() {
     return name;
+  }
+
+  public void merge(Tag merged) {
+    if (Objects.requireNonNull(merged) == this) {
+      throw new IllegalArgumentException("Attempted to merge tag with itself.");
+    }
+    if (merged.getState() != getState()) {
+      throw new IllegalArgumentException("Attempted to merge tags belonging to different "
+          + "states.");
+    }
+    for (Article art : getState().getArticles()) {
+      List<Tag> tags = art.getTags();
+      if (tags.contains(merged)) {
+        art.removeTag(merged);
+        if (tags.contains(this)) {
+          art.addTag(this);
+        }
+      }
+    }
+    getState().removeMember(merged);
+  }
+
+  public void setName(String name) {
+    this.name = name;
+    fireUpdated();
   }
 
   @Override
@@ -45,15 +67,16 @@ public class Tag extends SnowballStateMember implements Serializable {
     return name;
   }
 
-  private Object writeReplace() {
+  SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
-    throw new InvalidObjectException("Use of serialization proxy required.");
+  void restoreFromProxy(SerializationProxy proxy) {
+    setName(proxy.name);
+    setNotes(proxy.notes);
   }
 
-  private static class SerializationProxy implements Serializable {
+  static class SerializationProxy implements Serializable {
     static final long serialVersionUID = 4350613725999012654L;
     private String name;
     private String notes;
@@ -61,10 +84,6 @@ public class Tag extends SnowballStateMember implements Serializable {
     private SerializationProxy(Tag ta) {
       name = ta.name;
       notes = ta.getNotes();
-    }
-
-    private Object readResolve() {
-      return new Tag(this);
     }
   }
 }

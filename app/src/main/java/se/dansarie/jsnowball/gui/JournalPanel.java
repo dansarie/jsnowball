@@ -33,14 +33,14 @@ public class JournalPanel extends SnowballMemberPanel<Journal> {
       if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this journal?",
           "Delete journal", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) ==
               JOptionPane.YES_OPTION) {
-            Journal art = getItem();
+            Journal jo = getItem();
             setItem(null);
-            art.getState().removeJournal(art);
+            jo.remove();
           }
     });
 
     mergeButton.addActionListener(ev -> {
-      ArrayList<Journal> journals = new ArrayList<>(getItem().getState().getJournalList());
+      ArrayList<Journal> journals = new ArrayList<>(getItem().getState().getJournals());
       journals.remove(getItem());
       if (journals.size() == 0) {
         return;
@@ -51,7 +51,7 @@ public class JournalPanel extends SnowballMemberPanel<Journal> {
       if (jo == null) {
         return;
       }
-      getItem().getState().mergeJournals(getItem(), jo);
+      getItem().merge(jo);
     });
   }
 

@@ -8,152 +8,228 @@ import com.google.gson.JsonPrimitive;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.swing.ListModel;
-import javax.swing.event.ListDataEvent;
-import javax.swing.event.ListDataListener;
 
-public class Article extends SnowballStateMember implements Serializable {
+public class Article extends SnowballStateMember {
 
-  private String title = null;
   private String doi = null;
-  private ArrayList<Author> authors = new ArrayList<>();
-  private Journal journal = null;
-  private String year = null;
-  private String month = null;
-  private String volume = null;
   private String issue = null;
+  private Journal journal = null;
+  private String month = null;
   private String pages = null;
-  private ArticleAuthorsListModel authorsListModel = new ArticleAuthorsListModel();
+  private String title = null;
+  private String volume = null;
+  private String year = null;
 
-  Article() {
+  private ArrayList<Author> authors = new ArrayList<>();
+  private ArrayList<Article> references = new ArrayList<>();
+  private ArrayList<Article> referencesTo = new ArrayList<>();
+  private ArrayList<Tag> tags = new ArrayList<>();
+
+  private SnowballListModel<Author> authorsListModel = new SnowballListModel<>(authors);
+  private SnowballListModel<Article> referenceListModel = new SnowballListModel<>(references);
+  private SnowballListModel<Article> referencesToListModel = new SnowballListModel<>(referencesTo);
+  private SnowballListModel<Tag> tagListModel = new SnowballListModel<>(tags);
+
+  public Article(SnowballState state) {
+    super(state);
   }
 
-  private Article(SerializationProxy sp) {
-    title = sp.title;
-    doi = sp.doi;
-    authors = new ArrayList<>(Arrays.asList(sp.authors));
-    journal = sp.journal;
-    year = sp.year;
-    month = sp.month;
-    volume = sp.volume;
-    issue = sp.issue;
-    pages = sp.pages;
-    setNotes(sp.notes);
+  public void addAuthor(Author author) {
+    if (Objects.requireNonNull(author).getState() != getState()) {
+      throw new IllegalArgumentException("Article and author belong to different states.");
+    }
+    if (!authors.contains(author)) {
+      authors.add(author);
+      Collections.sort(authors);
+      authorsListModel.fireAdded(author);
+      fireUpdated();
+    }
+  }
+
+  public void addReference(Article ref) {
+    if (Objects.requireNonNull(ref) == this) {
+      throw new IllegalArgumentException("Circular references not allowed.");
+    }
+    if (ref.getState() != getState()) {
+      throw new IllegalArgumentException("Article and reference belong to different states.");
+    }
+    if (!references.contains(ref)) {
+      if (ref.referencesTo.contains(this)) {
+        throw new IllegalStateException();
+      }
+      references.add(ref);
+      ref.referencesTo.add(this);
+      Collections.sort(references);
+      Collections.sort(ref.referencesTo);
+      referenceListModel.fireAdded(ref);
+      ref.referencesToListModel.fireAdded(this);
+      fireUpdated();
+      ref.fireUpdated();
+    }
+  }
+
+  public void addTag(Tag tag) {
+    if (tag.getState() != getState()) {
+      throw new IllegalArgumentException("Article and tag belong to different states.");
+    }
+    if (!tags.contains(tag)) {
+      tags.add(tag);
+      Collections.sort(tags);
+      tagListModel.fireAdded(tag);
+      fireUpdated();
+    }
   }
 
   public List<Author> getAuthors() {
     return Collections.unmodifiableList(authors);
   }
 
+  public ListModel<Author> getAuthorsListModel() {
+    return authorsListModel;
+  }
+
+
   public String getDoi() {
     return doi;
-  }
-
-  public Journal getJournal() {
-    return journal;
-  }
-
-  public String getTitle() {
-    return title;
-  }
-
-  public String getYear() {
-    return year;
-  }
-
-  public String getMonth() {
-    return month;
-  }
-
-  public String getVolume() {
-    return volume;
   }
 
   public String getIssue() {
     return issue;
   }
 
+  public Journal getJournal() {
+    return journal;
+  }
+
+  public String getMonth() {
+    return month;
+  }
+
   public String getPages() {
     return pages;
   }
 
-  public void setDoi(String doi) {
-    this.doi = Objects.requireNonNullElse(doi, "");
-    state.updated(this);
+  public List<Article> getReferences() {
+    return Collections.unmodifiableList(references);
   }
 
-  public void setJournal(Journal journal) {
-    this.journal = journal;
-    state.updated(this);
+  public ListModel<Article> getReferenceListModel() {
+    return referenceListModel;
   }
 
-  public void setTitle(String title) {
-    this.title = Objects.requireNonNullElse(title, "");
-    state.updated(this);
+  public List<Article> getReferencesTo() {
+    return Collections.unmodifiableList(referencesTo);
   }
 
-  public void setYear(String year) {
-    this.year = Objects.requireNonNullElse(year, "");
-    state.updated(this);
+  public ListModel<Article> getReferencesToListModel() {
+    return referencesToListModel;
   }
 
-  public void setMonth(String month) {
-    this.month = Objects.requireNonNullElse(month, "");
-    state.updated(this);
+  public List<Tag> getTags() {
+    return Collections.unmodifiableList(tags);
   }
 
-  public void setVolume(String volume) {
-    this.volume = Objects.requireNonNullElse(volume, "");
-    state.updated(this);
+  public ListModel<Tag> getTagListModel() {
+    return tagListModel;
   }
 
-  public void setIssue(String issue) {
-    this.issue = Objects.requireNonNullElse(issue, "");
-    state.updated(this);
+  public String getTitle() {
+    return title;
   }
 
-  public void setPages(String pages) {
-    this.pages = Objects.requireNonNullElse(pages, "");
-    state.updated(this);
+  public String getVolume() {
+    return volume;
   }
 
-  public void addAuthor(Author author) {
-    if (author == null) {
-      throw new IllegalArgumentException();
-    }
-    if (!authors.contains(author)) {
-      authors.add(author);
-      int idx = authors.indexOf(author);
-      authorsListModel.fireAdded(idx);
-      state.updated(this);
-    }
+  public String getYear() {
+    return year;
   }
 
   public void removeAuthor(Author author) {
     int idx = authors.indexOf(author);
-    if (idx >= 0) {
-      authors.remove(author);
-      authorsListModel.fireRemoved(idx);
-      state.updated(this);
+    if (idx < 0) {
+      throw new IllegalArgumentException("Attempted to remove non-existing author.");
     }
+    authors.remove(author);
+    authorsListModel.fireRemoved(idx);
+    fireUpdated();
   }
 
-  public ListModel<Author> getAuthorsListModel() {
-    return authorsListModel;
+  public void removeReference(Article ref) {
+    int idx = references.indexOf(Objects.requireNonNull(ref));
+    if (idx < 0) {
+      throw new IllegalArgumentException("Attempted to remove non-existing reference.");
+    }
+    int idx2 = ref.referencesTo.indexOf(this);
+    if (idx < 0) {
+      throw new IllegalStateException();
+    }
+    references.remove(idx);
+    ref.referencesTo.remove(idx2);
+    referenceListModel.fireRemoved(idx);
+    ref.referencesToListModel.fireRemoved(idx2);
+    fireUpdated();
+    ref.fireUpdated();
+  }
+
+  public void removeTag(Tag tag) {
+    int idx = tags.indexOf(Objects.requireNonNull(tag));
+    if (idx < 0) {
+      throw new IllegalArgumentException("Attempted to remove non-existing tag.");
+    }
+    tags.remove(idx);
+    tagListModel.fireRemoved(idx);
+    fireUpdated();
+  }
+
+  public void setDoi(String doi) {
+    this.doi = Objects.requireNonNullElse(doi, "");
+    fireUpdated();
+  }
+
+  public void setIssue(String issue) {
+    this.issue = Objects.requireNonNullElse(issue, "");
+    fireUpdated();
+  }
+
+  public void setJournal(Journal journal) {
+    this.journal = journal;
+    fireUpdated();
+  }
+
+  public void setMonth(String month) {
+    this.month = Objects.requireNonNullElse(month, "");
+    fireUpdated();
+  }
+
+  public void setPages(String pages) {
+    this.pages = Objects.requireNonNullElse(pages, "");
+    fireUpdated();
+  }
+
+  public void setTitle(String title) {
+    this.title = Objects.requireNonNullElse(title, "");
+    fireUpdated();
+  }
+
+  public void setVolume(String volume) {
+    this.volume = Objects.requireNonNullElse(volume, "");
+    fireUpdated();
+  }
+
+  public void setYear(String year) {
+    this.year = Objects.requireNonNullElse(year, "");
+    fireUpdated();
   }
 
   public void importReferences() {
@@ -163,7 +239,7 @@ public class Article extends SnowballStateMember implements Serializable {
     String doidata = getDoiJson(doi);
     for (String ref : parseReferencesJson(doidata)) {
       Article refart = fromDoi(getState(), ref);
-      getState().addReference(this, refart);
+      addReference(refart);
     }
   }
 
@@ -249,7 +325,7 @@ public class Article extends SnowballStateMember implements Serializable {
       pages = jsonroot.getAsJsonPrimitive("page").getAsString();
     }
 
-    Article art = state.createArticle();
+    Article art = new Article(state);
     art.setTitle(title);
     art.setYear(year);
     art.setMonth(month);
@@ -326,80 +402,83 @@ public class Article extends SnowballStateMember implements Serializable {
     return getTitle();
   }
 
-  private class ArticleAuthorsListModel implements ListModel<Author> {
-    private Set<ListDataListener> listeners = new HashSet<>();
-
-    @Override
-    public Author getElementAt(int idx) {
-      return authors.get(idx);
-    }
-
-    @Override
-    public int getSize() {
-      return authors.size();
-    }
-
-    @Override
-    public void addListDataListener(ListDataListener li) {
-      listeners.add(Objects.requireNonNull(li));
-    }
-
-    @Override
-    public void removeListDataListener(ListDataListener li) {
-      listeners.remove(li);
-    }
-
-    private void fireAdded(int idx) {
-      ListDataEvent ev = new ListDataEvent(this, ListDataEvent.INTERVAL_ADDED, idx, idx);
-      for (ListDataListener li : listeners) {
-        li.intervalAdded(ev);
-      }
-    }
-
-    private void fireRemoved(int idx) {
-      ListDataEvent ev = new ListDataEvent(this, ListDataEvent.INTERVAL_REMOVED, idx, idx);
-      for (ListDataListener li : listeners) {
-        li.intervalRemoved(ev);
-      }
-    }
-  }
-
-  private Object writeReplace() {
+  SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
-    throw new InvalidObjectException("Use of serialization proxy required.");
+  void restoreFromProxy(SerializationProxy proxy, List<Article> articles, List<Author> authors,
+      List<Journal> journals, List<Tag> tags) {
+    setDoi(proxy.doi);
+    setIssue(proxy.issue);
+    setMonth(proxy.month);
+    setPages(proxy.pages);
+    setTitle(proxy.title);
+    setVolume(proxy.volume);
+    setYear(proxy.year);
+    setNotes(proxy.notes);
+    if (proxy.journal >= 0) {
+      setJournal(journals.get(proxy.journal));
+    }
+    for (int i : proxy.authors) {
+      addAuthor(authors.get(i));
+    }
+    for (int i : proxy.references) {
+      addReference(articles.get(i));
+    }
+    for (int i : proxy.tags) {
+      addTag(tags.get(i));
+    }
   }
 
-  private static class SerializationProxy implements Serializable {
+  static class SerializationProxy implements Serializable {
     static final long serialVersionUID = 7198211239321687296L;
-    private String title;
     private String doi;
-    private Author authors[];
-    private Journal journal;
-    private String year;
-    private String month;
-    private String volume;
     private String issue;
-    private String pages;
+    private String month;
     private String notes;
+    private String pages;
+    private String title;
+    private String volume;
+    private String year;
+    private int[] authors;
+    private int journal;
+    private int[] references;
+    private int[] tags;
 
     private SerializationProxy(Article art) {
-      title = art.title;
       doi = art.doi;
-      authors = art.authors.toArray(new Author[art.authors.size()]);
-      journal = art.journal;
-      year = art.year;
-      month = art.month;
-      volume = art.volume;
       issue = art.issue;
-      pages = art.pages;
+      month = art.month;
       notes = art.getNotes();
-    }
+      pages = art.pages;
+      title = art.title;
+      volume = art.volume;
+      year = art.year;
+      SnowballState state = art.getState();
 
-    private Object readResolve() {
-      return new Article(this);
+      authors = new int[art.authors.size()];
+      List<Author> aulist = state.getAuthors();
+      for (int i = 0; i < art.authors.size(); i++) {
+        authors[i] = aulist.indexOf(art.authors.get(i));
+      }
+
+      if (art.journal == null) {
+        journal = -1;
+      } else {
+        journal = state.getJournals().indexOf(art.journal);
+      }
+
+      references = new int[art.references.size()];
+      List<Article> articles = state.getArticles();
+      for (int i = 0; i < art.references.size(); i++) {
+        references[i] = articles.indexOf(art.references.get(i));
+      }
+
+      tags = new int[art.tags.size()];
+      List<Tag> taglist = state.getTags();
+      for (int i = 0; i < art.tags.size(); i++) {
+        tags[i] = taglist.indexOf(art.tags.get(i));
+      }
     }
   }
  }
