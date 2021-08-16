@@ -2,9 +2,12 @@ package se.dansarie.jsnowball;
 
 import java.awt.Dimension;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -15,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.prefs.Preferences;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -37,6 +42,29 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 
 public class JSnowball {
+  private AbstractAction exitAction = new AbstractAction("Quit") {
+    {
+      putValue(Action.ACCELERATOR_KEY,
+          KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
+    }
+    public void actionPerformed(ActionEvent ev) {
+      if (!state.isSaved()) {
+        int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
+            + "Do you wish to save it before quitting?", "Quit", JOptionPane.YES_NO_CANCEL_OPTION);
+        if (result == JOptionPane.CANCEL_OPTION) {
+          return;
+        }
+        if (result == JOptionPane.YES_OPTION) {
+          if (!saveState(false)) {
+            return;
+          }
+        }
+      }
+      frame.setVisible(false);
+      frame.dispose();
+    }
+  };
+
   private ArticlePanel articlePanel = new ArticlePanel();
   private AuthorPanel authorPanel = new AuthorPanel();
   private JournalPanel journalPanel = new JournalPanel();
@@ -329,7 +357,7 @@ public class JSnowball {
     JMenuItem openprojectitem = new JMenuItem("Open project...");
     JMenuItem saveprojectitem = new JMenuItem("Save project");
     JMenuItem saveasprojectitem = new JMenuItem("Save project as...");
-    JMenuItem exititem = new JMenuItem("Quit");
+    JMenuItem exititem = new JMenuItem(exitAction);
 
     createRecentFilesMenu();
 
@@ -372,8 +400,6 @@ public class JSnowball {
     openprojectitem.setAccelerator(stroke);
     stroke = KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK);
     saveprojectitem.setAccelerator(stroke);
-    stroke = KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK);
-    exititem.setAccelerator(stroke);
     stroke = KeyStroke.getKeyStroke(KeyEvent.VK_D, KeyEvent.CTRL_DOWN_MASK);
     addArticleDoi.setAccelerator(stroke);
 
@@ -420,23 +446,6 @@ public class JSnowball {
 
     saveprojectitem.addActionListener(ev -> saveState(false));
     saveasprojectitem.addActionListener(ev -> saveState(true));
-
-    exititem.addActionListener(ev -> {
-      if (!state.isSaved()) {
-        int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
-            + "Do you wish to save it before quitting?", "Quit", JOptionPane.YES_NO_CANCEL_OPTION);
-        if (result == JOptionPane.CANCEL_OPTION) {
-          return;
-        }
-        if (result == JOptionPane.YES_OPTION) {
-          if (!saveState(false)) {
-            return;
-          }
-        }
-      }
-      frame.setVisible(false);
-      frame.dispose();
-    });
 
     addArticleDoi.addActionListener(ev -> {
       String doi = JOptionPane.showInputDialog(frame, "Enter a DOI",
@@ -587,7 +596,7 @@ public class JSnowball {
     frame.setJMenuBar(menubar);
     createMainSplitPane();
     frame.getContentPane().add(mainSplitPane);
-    frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
     frame.setSize(getFrameDimensionPreference());
     frame.setLocation(getFrameLocationPreference());
 
@@ -606,6 +615,14 @@ public class JSnowball {
         Dimension size = frame.getSize();
         prefs.putInt("dimension_x", size.width);
         prefs.putInt("dimension_y", size.height);
+      }
+    });
+
+    frame.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent ev) {
+        exitAction.actionPerformed(new ActionEvent(ev.getSource(), ActionEvent.ACTION_PERFORMED,
+            null));
       }
     });
 
