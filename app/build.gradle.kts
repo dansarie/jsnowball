@@ -19,7 +19,6 @@ repositories {
 dependencies {
     testImplementation("junit:junit:4.13.2")
     implementation("com.google.guava:guava:30.1.1-jre")
-    implementation("com.google.code.gson:gson:2.8.7");
     implementation("org.json:json:20210307")
 }
 
