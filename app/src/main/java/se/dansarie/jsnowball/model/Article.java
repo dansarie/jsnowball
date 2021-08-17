@@ -1,17 +1,6 @@
 package se.dansarie.jsnowball.model;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,14 +10,14 @@ import javax.swing.ListModel;
 
 public class Article extends SnowballStateMember {
 
-  private String doi = null;
-  private String issue = null;
+  private String doi = "";
+  private String issue = "";
   private Journal journal = null;
-  private String month = null;
-  private String pages = null;
-  private String title = null;
-  private String volume = null;
-  private String year = null;
+  private String month = "";
+  private String pages = "";
+  private String title = "";
+  private String volume = "";
+  private String year = "";
 
   private ArrayList<Author> authors = new ArrayList<>();
   private ArrayList<Article> references = new ArrayList<>();
@@ -42,6 +31,47 @@ public class Article extends SnowballStateMember {
 
   public Article(SnowballState state) {
     super(state);
+  }
+
+  public Article(SnowballState state, CrossRef r) {
+    super(state);
+    setDoi(r.doi);
+    setIssue(r.issue);
+    setMonth("" + r.issued.getMonthValue());
+    setPages(r.page);
+    setTitle(r.title);
+    setVolume(r.volume);
+    setYear("" + r.issued.getYear());
+    for (CrossRef.Author a : r.authors) {
+      if (a.orcid != null) {
+        Author au = Author.getByOrcid(state, a.orcid);
+        if (au != null) {
+          addAuthor(au);
+          continue;
+        }
+      }
+      Author au = Author.getByName(state, a.firstName, a.lastName);
+      if (au == null) {
+        addAuthor(new Author(state, a));
+      } else {
+        addAuthor(au);
+      }
+    }
+    if (r.journal != null) {
+      Journal jo = null;
+      if (r.issn != null) {
+        jo = Journal.getByIssn(state, r.issn);
+      }
+      if (jo == null) {
+        jo = Journal.getByName(state, r.journal);
+      }
+      if (jo == null) {
+        jo = new Journal(state);
+        jo.setName(r.journal);
+        jo.setIssn(r.issn);
+      }
+      setJournal(jo);
+    }
   }
 
   public void addAuthor(Author author) {
@@ -243,156 +273,6 @@ public class Article extends SnowballStateMember {
   public void setYear(String year) {
     this.year = Objects.requireNonNullElse(year, "");
     fireUpdated();
-  }
-
-  public void importReferences() {
-    if (doi == null || doi.length() == 0) {
-      return;
-    }
-    String doidata = getDoiJson(doi);
-    for (String ref : parseReferencesJson(doidata)) {
-      Article refart = fromDoi(getState(), ref);
-      addReference(refart);
-    }
-  }
-
-  public static Article fromDoi(SnowballState state, String doi) {
-    return parseDoiJson(state, getDoiJson(doi));
-  }
-
-  private static String getDoiJson(String doi) {
-    InputStream stream = null;
-    try {
-      System.out.println("DOI: " + doi);
-      URL url = new URL("https://doi.org/" + doi);
-      URLConnection connection = url.openConnection();
-      connection.setRequestProperty("Accept", "application/vnd.citationstyles.csl+json");
-      connection.setRequestProperty("User-Agent", "JSnowball (mailto:marcus@dansarie.se)");
-      stream = (InputStream)connection.getContent();
-      String doidata = new String(stream.readAllBytes(), "UTF-8");
-      System.out.println(doidata);
-      return doidata;
-    } catch (MalformedURLException ex) {
-      System.out.println(ex);
-    } catch (IOException ex) {
-      System.out.println(ex);
-    } finally {
-      if (stream != null) {
-        try {
-          stream.close();
-        } catch (IOException ex) {
-        }
-      }
-    }
-    return null;
-  }
-
-  private static List<String> parseReferencesJson(String doidata) {
-    JsonObject jsonroot = JsonParser.parseString(doidata).getAsJsonObject();
-    ArrayList<String> refs = new ArrayList<>();
-    if (!jsonroot.has("reference")) {
-      return refs;
-    }
-    for (JsonElement ref : jsonroot.getAsJsonArray("reference")) {
-      if (!ref.getAsJsonObject().has("DOI")) {
-        continue;
-      }
-      refs.add(ref.getAsJsonObject().getAsJsonPrimitive("DOI").getAsString());
-    }
-    return refs;
-  }
-
-  private static Article parseDoiJson(SnowballState state, String doidata) {
-    JsonObject jsonroot = JsonParser.parseString(doidata).getAsJsonObject();
-    String title = jsonroot.getAsJsonPrimitive("title").getAsString();
-    String year = null;
-    String month = null;
-    String volume = null;
-    String issue = null;
-    String pages = null;
-
-    /* Year and month. */
-    if (jsonroot.has("issued")) {
-      JsonArray date = jsonroot.getAsJsonObject("issued").getAsJsonArray("date-parts").get(0)
-          .getAsJsonArray();
-      if (date.size() > 0) {
-        year = Integer.toString(date.get(0).getAsInt());
-      }
-      if (date.size() > 1) {
-        month = Integer.toString(date.get(1).getAsInt());
-      }
-    }
-
-    /* Volume. */
-    if (jsonroot.has("volume")) {
-      volume = jsonroot.getAsJsonPrimitive("volume").getAsString();
-    }
-
-    /* Issue. */
-    if (jsonroot.has("journal-issue")) {
-      issue = jsonroot.getAsJsonObject("journal-issue").getAsJsonPrimitive("issue").getAsString();
-    }
-
-    /* Pages. */
-    if (jsonroot.has("page")) {
-      pages = jsonroot.getAsJsonPrimitive("page").getAsString();
-    }
-
-    Article art = new Article(state);
-    art.setTitle(title);
-    art.setYear(year);
-    art.setMonth(month);
-    art.setVolume(volume);
-    art.setIssue(issue);
-    art.setPages(pages);
-
-    /* Authors. */
-    if (jsonroot.has("author")) {
-      for (JsonElement p : jsonroot.getAsJsonArray("author")) {
-        JsonObject po = p.getAsJsonObject();
-        String given = po.getAsJsonPrimitive("given").getAsString();
-        String family = po.getAsJsonPrimitive("family").getAsString();
-        String orcid = null;
-        if (po.has("ORCID")) {
-          String[] orcidSplit = po.getAsJsonPrimitive("ORCID").getAsString().split("/");
-          orcid = orcidSplit[orcidSplit.length - 1];
-        }
-        Author author = state.getAuthorFromStrings(given, family);
-        author.setFirstName(given);
-        author.setLastName(family);
-        author.setOrcId(orcid);
-        art.addAuthor(author);
-      }
-    }
-
-    /* Journal. */
-    if (jsonroot.has("container-title")) {
-      String journalName = jsonroot.getAsJsonPrimitive("container-title").getAsString();
-      String issn = null;
-      JsonElement issnElement = jsonroot.get("ISSN");
-      if (issnElement instanceof JsonArray) {
-        JsonArray issnArray = jsonroot.getAsJsonArray("ISSN");
-        if (issnArray.size() > 0) {
-          issn = issnArray.get(0).getAsString();
-        }
-      } else if (issnElement instanceof JsonPrimitive) {
-        issn = issnElement.getAsJsonPrimitive().getAsString();
-      }
-
-      Journal journal = state.getJournalFromIssn(issn);
-      if (journal.getName() == null) {
-        journal.setName(journalName);
-      }
-      art.setJournal(journal);
-    }
-
-    /* DOI */
-    if (jsonroot.has("DOI")) {
-      String doi = jsonroot.getAsJsonPrimitive("DOI").getAsString();
-      art.setDoi(doi);
-    }
-
-    return art;
   }
 
   @Override

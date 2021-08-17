@@ -37,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
@@ -50,6 +51,7 @@ import se.dansarie.jsnowball.gui.JournalPanel;
 import se.dansarie.jsnowball.gui.TagPanel;
 import se.dansarie.jsnowball.model.Article;
 import se.dansarie.jsnowball.model.Author;
+import se.dansarie.jsnowball.model.CrossRef;
 import se.dansarie.jsnowball.model.Journal;
 import se.dansarie.jsnowball.model.SnowballState;
 import se.dansarie.jsnowball.model.Tag;
@@ -175,7 +177,25 @@ public class JSnowball {
       if (doi == null) {
         return;
       }
-      Article.fromDoi(state, doi);
+      SwingWorker<CrossRef, Void> w = new SwingWorker<>() {
+        @Override
+        protected CrossRef doInBackground() {
+          try {
+            return CrossRef.getDoi(doi);
+          } catch (IOException ex) {
+            System.out.println(ex);
+            return null;
+          }
+        }
+        @Override
+        protected void done() {
+          try {
+            new Article(state, get());
+          } catch (Exception ex) {
+          }
+        }
+      };
+      w.execute();
     }
   };
 

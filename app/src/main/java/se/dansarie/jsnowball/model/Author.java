@@ -7,22 +7,20 @@ import java.util.Objects;
 
 
 public class Author extends SnowballStateMember {
-  private String firstname;
-  private String lastname;
-  private String orgname;
-  private String orcid;
+  private String firstname = "";
+  private String lastname = "";
+  private String orgname = "";
+  private String orcid = "";
 
   public Author(SnowballState state) {
     super(state);
   }
 
-  private Author(SerializationProxy sp) {
-    super(null);
-    firstname = sp.firstname;
-    lastname = sp.lastname;
-    orgname = sp.orgname;
-    orcid = sp.orcid;
-    setNotes(sp.notes);
+  public Author(SnowballState state, CrossRef.Author r) {
+    super(state);
+    setFirstName(r.firstName);
+    setLastName(r.lastName);
+    setOrcId(r.orcid);
   }
 
   public List<Article> getArticles() {
@@ -59,7 +57,7 @@ public class Author extends SnowballStateMember {
       throw new IllegalArgumentException("Attempted to merge authors belonging to different "
           + "states.");
     }
-    for (Article art : getState().getArticles()) {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
       List<Author> authors = art.getAuthors();
       if (authors.contains(merged)) {
         art.removeAuthor(merged);
@@ -132,6 +130,24 @@ public class Author extends SnowballStateMember {
   @Override
   public String toString() {
     return getLastName() + ", " + getFirstName();
+  }
+
+  public static Author getByOrcid(SnowballState state, String orcid) {
+    for (Author au : state.getAuthors()) {
+      if (au.getOrcId().equals(orcid)) {
+        return au;
+      }
+    }
+    return null;
+  }
+
+  public static Author getByName(SnowballState state, String first, String last) {
+    for (Author au : state.getAuthors()) {
+      if (au.getFirstName().equalsIgnoreCase(first) && au.getLastName().equalsIgnoreCase(last)) {
+        return au;
+      }
+    }
+    return null;
   }
 
   SerializationProxy getSerializationProxy() {

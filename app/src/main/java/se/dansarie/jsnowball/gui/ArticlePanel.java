@@ -4,12 +4,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -21,13 +24,16 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ProgressMonitor;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 import javax.swing.text.JTextComponent;
 
 import se.dansarie.jsnowball.model.Article;
 import se.dansarie.jsnowball.model.Author;
+import se.dansarie.jsnowball.model.CrossRef;
 import se.dansarie.jsnowball.model.Journal;
 import se.dansarie.jsnowball.model.SnowballState;
 import se.dansarie.jsnowball.model.Tag;
@@ -47,8 +53,106 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   private JList<Tag> tags = new JList<>();
   private JList<Article> references = new JList<>();
   private JList<Article> referencedBy = new JList<>();
-  private JButton deleteButton = new JButton("Remove article");
-  private JButton importReferencesButton = new JButton("Import references");
+
+  private Action deleteAction = new AbstractAction("Remove article") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this article?",
+        "Delete article", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) ==
+            JOptionPane.YES_OPTION) {
+          Article art = getItem();
+          setItem(null);
+          art.remove();
+        }
+      }
+  };
+  private JButton deleteButton = new JButton(deleteAction);
+
+  private Action importReferencesAction = new AbstractAction("Import references") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      String doi = getItem().getDoi();
+      if (doi == null || doi.trim().length() == 0) {
+        JOptionPane.showMessageDialog(ArticlePanel.this, "Importing references requires a DOI.",
+            "Import references", JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+
+      ProgressMonitor pm = new ProgressMonitor(ArticlePanel.this, "Retrieving references",
+          "Retrieving references list.", 0, 1);
+
+      pm.setMillisToPopup(500);
+      pm.setMillisToDecideToPopup(100);
+      Article article = getItem();
+      SnowballState state = getItem().getState();
+
+      SwingWorker<Void, Void> w = new SwingWorker<>() {
+        @Override
+        protected Void doInBackground() {
+          try {
+            CrossRef art = CrossRef.getDoi(doi);
+            SwingUtilities.invokeLater(() -> pm.setMaximum(art.references.size() + 1));
+            int i = 1;
+            for (CrossRef.Reference r : art.references) {
+              final int p = i++;
+              SwingUtilities.invokeLater(() -> pm.setProgress(p));
+              if (r.doi != null) {
+                SwingUtilities.invokeLater(() -> pm.setNote("Retrieving data for " + r.doi));
+                CrossRef cr = CrossRef.getDoi(r.doi);
+                SwingUtilities.invokeLater(() -> {
+                  Article ar = new Article(state, cr);
+                  article.addReference(ar);
+                });
+              } else if (r.title != null) {
+                SwingUtilities.invokeLater(() -> {
+                  Article a = new Article(state);
+                  a.setTitle(r.title);
+                  a.setIssue(r.issue);
+                  a.setPages(r.page);
+                  a.setVolume(r.volume);
+                  a.setYear(r.year);
+                  Journal j = null;
+                  if (r.issn != null) {
+                    j = Journal.getByIssn(state, r.issn);
+                  }
+                  if (j == null && r.journal != null) {
+                    j = Journal.getByName(state, r.journal);
+                  }
+                  if (j == null && r.journal != null) {
+                    j = new Journal(state);
+                    j.setName(r.journal);
+                    j.setIssn(r.issn);
+                  }
+                  if (j != null) {
+                    a.setJournal(j);
+                  }
+                  if (r.author != null) {
+                    Author au = Author.getByName(state, "", r.author);
+                    if (au == null) {
+                      au = new Author(state);
+                      au.setLastName(r.author);
+                    }
+                    a.addAuthor(au);
+                  }
+                  article.addReference(a);
+                });
+              }
+            }
+          } catch (IOException | RuntimeException ex) {
+            System.out.println(ex);
+          }
+          return null;
+        }
+
+        @Override
+        protected void done() {
+          pm.close();
+        }
+      };
+      w.execute();
+    }
+  };
+  private JButton importReferencesButton = new JButton(importReferencesAction);
 
   private ActionListener journalListener = new ActionListener() {
     @Override
@@ -121,16 +225,6 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     authors.addMouseListener(authorsListener);
     tags.addMouseListener(tagsListener);
     references.addMouseListener(referencesListener);
-    deleteButton.addActionListener(ev -> {
-      if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this article?",
-          "Delete article", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) ==
-              JOptionPane.YES_OPTION) {
-            Article art = getItem();
-            setItem(null);
-            art.remove();
-          }
-    });
-    importReferencesButton.addActionListener(ev -> getItem().importReferences());
   }
 
   @Override

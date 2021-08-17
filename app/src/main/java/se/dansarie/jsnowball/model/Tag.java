@@ -6,17 +6,10 @@ import java.util.List;
 import java.util.Objects;
 
 public class Tag extends SnowballStateMember {
-
-  private String name = null;
+  private String name = "";
 
   public Tag(SnowballState state) {
     super(state);
-  }
-
-  private Tag(SerializationProxy sp) {
-    super(null);
-    name = sp.name;
-    setNotes(sp.notes);
   }
 
   public String getName() {
@@ -31,7 +24,7 @@ public class Tag extends SnowballStateMember {
       throw new IllegalArgumentException("Attempted to merge tags belonging to different "
           + "states.");
     }
-    for (Article art : getState().getArticles()) {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
       List<Tag> tags = art.getTags();
       if (tags.contains(merged)) {
         art.removeTag(merged);
@@ -44,7 +37,7 @@ public class Tag extends SnowballStateMember {
   }
 
   public void setName(String name) {
-    this.name = name;
+    this.name = Objects.requireNonNullElse(name, "");
     fireUpdated();
   }
 

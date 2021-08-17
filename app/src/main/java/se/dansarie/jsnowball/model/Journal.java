@@ -5,18 +5,11 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public class Journal extends SnowballStateMember {
-  private String name = null;
-  private String issn = null;
+  private String name = "";
+  private String issn = "";
 
   public Journal(SnowballState state) {
     super(state);
-  }
-
-  private Journal(SerializationProxy sp) {
-    super(null);
-    name = sp.name;
-    issn = sp.issn;
-    setNotes(sp.notes);
   }
 
   public String getIssn() {
@@ -35,7 +28,7 @@ public class Journal extends SnowballStateMember {
       throw new IllegalArgumentException("Attempted to merge authors belonging to different "
           + "states.");
     }
-    for (Article art : getState().getArticles()) {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
       if (art.getJournal() == merged) {
         art.setJournal(this);
       }
@@ -81,6 +74,24 @@ public class Journal extends SnowballStateMember {
   @Override
   public String toString() {
     return getName();
+  }
+
+  public static Journal getByIssn(SnowballState state, String issn) {
+    for (Journal jo : state.getJournals()) {
+      if (jo.getIssn().equals(issn)) {
+        return jo;
+      }
+    }
+    return null;
+  }
+
+  public static Journal getByName(SnowballState state, String name) {
+    for (Journal jo : state.getJournals()) {
+      if (jo.getName().equals(name)) {
+        return jo;
+      }
+    }
+    return null;
   }
 
   SerializationProxy getSerializationProxy() {
