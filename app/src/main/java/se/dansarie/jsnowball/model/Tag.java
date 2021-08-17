@@ -1,6 +1,7 @@
 package se.dansarie.jsnowball.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,6 +61,16 @@ public class Tag extends SnowballStateMember {
       return 1;
     }
     return getName().compareToIgnoreCase(o.getName());
+  }
+
+  @Override
+  public void remove() {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
+      if (art.getTags().contains(this)) {
+        art.removeTag(this);
+      }
+    }
+    getState().removeMember(this);
   }
 
   @Override

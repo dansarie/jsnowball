@@ -1,6 +1,7 @@
 package se.dansarie.jsnowball.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class Journal extends SnowballStateMember {
@@ -65,6 +66,16 @@ public class Journal extends SnowballStateMember {
       return 1;
     }
     return getName().compareToIgnoreCase(o.getName());
+  }
+
+  @Override
+  public void remove() {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
+      if (art.getJournal() == this) {
+        art.setJournal(null);
+      }
+    }
+    getState().removeMember(this);
   }
 
   @Override

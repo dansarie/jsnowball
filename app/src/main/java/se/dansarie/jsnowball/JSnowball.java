@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
@@ -33,6 +35,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
+import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.event.ListDataEvent;
@@ -226,10 +229,10 @@ public class JSnowball {
     }
   };
 
-  private SnowballTableModel articleTableModel = new SnowballTableModel() {
+  private SnowballTableModel<Article> articleTableModel = new SnowballTableModel<>() {
     @Override
     public int getRowCount() {
-      return state.getArticles().size();
+      return listModel.getSize();
     }
 
     @Override
@@ -243,7 +246,7 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Article art = state.getArticles().get(row);
+      Article art = listModel.getElementAt(row);
       switch (col) {
         case 0: return art.toString();
         case 1: return Integer.valueOf(art.getReferencesTo().size());
@@ -252,10 +255,10 @@ public class JSnowball {
     }
   };
 
-  private SnowballTableModel authorTableModel = new SnowballTableModel() {
+  private SnowballTableModel<Author> authorTableModel = new SnowballTableModel<>() {
     @Override
     public int getRowCount() {
-      return state.getAuthors().size();
+      return listModel.getSize();
     }
 
     @Override
@@ -285,7 +288,8 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Author au = state.getAuthors().get(row);
+      Author au = listModel.getElementAt(row);
+      SnowballState state = au.getState();
       int i = 0;
       switch (col) {
         case 0: return au.toString();
@@ -308,10 +312,10 @@ public class JSnowball {
     }
   };
 
-  private SnowballTableModel journalTableModel = new SnowballTableModel() {
+  private SnowballTableModel<Journal> journalTableModel = new SnowballTableModel<>() {
     @Override
     public int getRowCount() {
-      return state.getJournals().size();
+      return listModel.getSize();
     }
 
     @Override
@@ -341,7 +345,8 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Journal jo = state.getJournals().get(row);
+      Journal jo = listModel.getElementAt(row);
+      SnowballState state = jo.getState();
       int i = 0;
       switch (col) {
         case 0: return jo.toString();
@@ -364,10 +369,10 @@ public class JSnowball {
     }
   };
 
-  private SnowballTableModel tagTableModel = new SnowballTableModel() {
+  private SnowballTableModel<Tag> tagTableModel = new SnowballTableModel<>() {
     @Override
     public int getRowCount() {
-      return state.getTags().size();
+      return listModel.getSize();
     }
 
     @Override
@@ -386,7 +391,7 @@ public class JSnowball {
 
     @Override
     public Object getValueAt(int row, int col) {
-      Tag tag = state.getTags().get(row);
+      Tag tag = listModel.getElementAt(row);
       switch (col) {
         case 0: return tag.toString();
         case 1:
@@ -430,15 +435,25 @@ public class JSnowball {
     authorList.addListSelectionListener(authorSelectionWatcher);
     journalList.addListSelectionListener(journalSelectionWatcher);
     tagList.addListSelectionListener(tagSelectionWatcher);
-    state.getArticleListModel().addListDataListener(articleSelectionWatcher);
-    state.getAuthorListModel().addListDataListener(authorSelectionWatcher);
-    state.getJournalListModel().addListDataListener(journalSelectionWatcher);
-    state.getTagListModel().addListDataListener(tagSelectionWatcher);
-    state.getJournalListModel().addListDataListener(articlePanel);
-    articleTableModel.setState(state);
-    authorTableModel.setState(state);
-    journalTableModel.setState(state);
-    tagTableModel.setState(state);
+    ListModel<Article> articleListModel = state.getArticleListModel();
+    ListModel<Author> authorListModel = state.getAuthorListModel();
+    ListModel<Journal> journalListModel = state.getJournalListModel();
+    ListModel<Tag> tagListModel = state.getTagListModel();
+    articleListModel.addListDataListener(articleSelectionWatcher);
+    authorListModel.addListDataListener(authorSelectionWatcher);
+    journalListModel.addListDataListener(journalSelectionWatcher);
+    tagListModel.addListDataListener(tagSelectionWatcher);
+    journalListModel.addListDataListener(articlePanel);
+    articleTableModel.setModel(articleListModel);
+    authorTableModel.setModel(authorListModel);
+    authorTableModel.clearWatched();
+    authorTableModel.addWatched(articleListModel);
+    journalTableModel.setModel(journalListModel);
+    journalTableModel.clearWatched();
+    journalTableModel.addWatched(articleListModel);
+    tagTableModel.setModel(tagListModel);
+    tagTableModel.clearWatched();
+    tagTableModel.addWatched(articleListModel);
   }
 
   private boolean saveState(boolean askFirst, boolean showDialog) {
@@ -774,17 +789,35 @@ public class JSnowball {
     //Article.fromDoi(state, "10.1007/3-540-48519-8_18");
   }
 
-  private static abstract class SnowballTableModel extends AbstractTableModel
+  private static abstract class SnowballTableModel<E> extends AbstractTableModel
       implements ListDataListener {
-    private SnowballState state;
+    protected ListModel<E> listModel = null;
+    private Set<ListModel<?>> watched = new HashSet<>();
 
-    public void setState(SnowballState newstate) {
-      if (state != null) {
-        state.getArticleListModel().removeListDataListener(this);
+    public void setModel(ListModel<E> newModel) {
+      if (listModel != null) {
+        listModel.removeListDataListener(this);
       }
-      state = newstate;
-      state.getArticleListModel().addListDataListener(this);
+      listModel = newModel;
+      if (listModel != null) {
+        listModel.addListDataListener(this);
+      }
       fireTableDataChanged();
+    }
+
+    public void addWatched(ListModel<?> newWatch) {
+      if (watched.contains(newWatch)) {
+        return;
+      }
+      watched.add(newWatch);
+      newWatch.addListDataListener(this);
+    }
+
+    public void clearWatched() {
+      for (ListModel<?> w : watched) {
+        w.removeListDataListener(this);
+      }
+      watched.clear();
     }
 
     @Override
@@ -794,12 +827,16 @@ public class JSnowball {
 
     @Override
     public void intervalAdded(ListDataEvent ev) {
-      fireTableRowsInserted(ev.getIndex0(), ev.getIndex1());
+      if (ev.getSource() == listModel) {
+        fireTableRowsInserted(ev.getIndex0(), ev.getIndex1());
+      }
     }
 
     @Override
     public void intervalRemoved(ListDataEvent ev) {
-      fireTableRowsDeleted(ev.getIndex0(), ev.getIndex1());
+      if (ev.getSource() == listModel) {
+        fireTableRowsDeleted(ev.getIndex0(), ev.getIndex1());
+      }
     }
 
     @Override

@@ -89,36 +89,26 @@ public class SnowballState implements Serializable {
       throw new IllegalArgumentException("Attempted to remove member from wrong state.");
     }
 
+    List<? extends SnowballStateMember> list = null;
+    SnowballListModel<? extends SnowballStateMember> listModel = null;
     if (member instanceof Article) {
-
+      list = articles;
+      listModel = articleListModel;
     } else if (member instanceof Author) {
-      for (Article art : articles) {
-        if (art.getAuthors().contains(member)) {
-          art.removeAuthor((Author)member);
-          fireUpdated(art);
-        }
-      }
-      authors.remove(member);
+      list = authors;
+      listModel = authorListModel;
     } else if (member instanceof Journal) {
-      for (Article art : articles) {
-        if (art.getJournal() == member) {
-          art.setJournal(null);
-          fireUpdated(art);
-        }
-      }
-      journals.remove(member);
+      list = journals;
+      listModel = journalListModel;
     } else if (member instanceof Tag) {
-      for (Article art : articles) {
-        if (art.getTags().contains(member)) {
-          art.removeTag((Tag)member);
-          fireUpdated(art);
-        }
-      }
-      tags.remove(member);
+      list = tags;
+      listModel = tagListModel;
     } else {
       throw new IllegalStateException();
     }
-    fireUpdated(member);
+    int idx = list.indexOf(member);
+    list.remove(idx);
+    listModel.fireRemoved(idx);
   }
 
   void addMember(SnowballStateMember member) {

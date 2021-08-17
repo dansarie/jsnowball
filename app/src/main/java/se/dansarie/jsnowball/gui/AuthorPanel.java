@@ -40,9 +40,9 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
       if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this author?",
           "Delete author", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) ==
               JOptionPane.YES_OPTION) {
-            Author art = getItem();
+            Author au = getItem();
             setItem(null);
-            art.remove();
+            au.remove();
           }
     });
 

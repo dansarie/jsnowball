@@ -182,6 +182,19 @@ public class Article extends SnowballStateMember {
     ref.fireUpdated();
   }
 
+  @Override
+  public void remove() {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
+      if (art.getReferences().contains(this)) {
+        art.removeReference(this);
+      }
+    }
+    for (Article art : new ArrayList<>(references)) {
+      removeReference(art);
+    }
+    getState().removeMember(this);
+  }
+
   public void removeTag(Tag tag) {
     int idx = tags.indexOf(Objects.requireNonNull(tag));
     if (idx < 0) {

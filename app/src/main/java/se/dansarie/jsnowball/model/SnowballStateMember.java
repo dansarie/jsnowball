@@ -27,7 +27,5 @@ abstract class SnowballStateMember implements Comparable<SnowballStateMember> {
     this.notes = Objects.requireNonNullElse(notes, "");
   }
 
-  public void remove() {
-    state.removeMember(this);
-  }
+  public abstract void remove();
 }

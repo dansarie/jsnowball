@@ -68,7 +68,17 @@ public class Author extends SnowballStateMember {
         }
       }
     }
-    getState().removeMember(merged);
+    merged.remove();
+  }
+
+  @Override
+  public void remove() {
+    for (Article art : new ArrayList<>(getState().getArticles())) {
+      if (art.getAuthors().contains(this)) {
+        art.removeAuthor(this);
+      }
+    }
+    getState().removeMember(this);
   }
 
   public void setFirstName(String name) {
