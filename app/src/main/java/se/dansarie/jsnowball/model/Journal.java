@@ -1,7 +1,6 @@
 package se.dansarie.jsnowball.model;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Objects;
 
 public class Journal extends SnowballStateMember {
@@ -28,7 +27,7 @@ public class Journal extends SnowballStateMember {
       throw new IllegalArgumentException("Attempted to merge authors belonging to different "
           + "states.");
     }
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       if (art.getJournal() == merged) {
         art.setJournal(this);
       }
@@ -63,7 +62,7 @@ public class Journal extends SnowballStateMember {
 
   @Override
   public synchronized void remove() {
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       if (art.getJournal() == this) {
         art.setJournal(null);
       }

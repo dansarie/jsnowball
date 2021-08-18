@@ -57,7 +57,7 @@ public class Author extends SnowballStateMember {
       throw new IllegalArgumentException("Attempted to merge authors belonging to different "
           + "states.");
     }
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       List<Author> authors = art.getAuthors();
       if (authors.contains(merged)) {
         art.removeAuthor(merged);
@@ -71,7 +71,7 @@ public class Author extends SnowballStateMember {
 
   @Override
   public synchronized void remove() {
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       if (art.getAuthors().contains(this)) {
         art.removeAuthor(this);
       }

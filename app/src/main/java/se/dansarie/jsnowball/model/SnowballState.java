@@ -180,19 +180,19 @@ public class SnowballState implements Serializable {
   }
 
   synchronized public List<Article> getArticles() {
-    return Collections.unmodifiableList(articles);
+    return Collections.unmodifiableList(new ArrayList<>(articles));
   }
 
   synchronized public List<Author> getAuthors() {
-    return Collections.unmodifiableList(authors);
+    return Collections.unmodifiableList(new ArrayList<>(authors));
   }
 
   synchronized public List<Journal> getJournals() {
-    return Collections.unmodifiableList(journals);
+    return Collections.unmodifiableList(new ArrayList<>(journals));
   }
 
   synchronized public List<Tag> getTags() {
-    return Collections.unmodifiableList(tags);
+    return Collections.unmodifiableList(new ArrayList<>(tags));
   }
 
   synchronized public ListModel<Article> getArticleListModel() {

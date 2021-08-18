@@ -1,7 +1,6 @@
 package se.dansarie.jsnowball.model;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,7 +23,7 @@ public class Tag extends SnowballStateMember {
       throw new IllegalArgumentException("Attempted to merge tags belonging to different "
           + "states.");
     }
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       List<Tag> tags = art.getTags();
       if (tags.contains(merged)) {
         art.removeTag(merged);
@@ -58,7 +57,7 @@ public class Tag extends SnowballStateMember {
 
   @Override
   public synchronized void remove() {
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       if (art.getTags().contains(this)) {
         art.removeTag(this);
       }

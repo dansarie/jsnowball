@@ -126,7 +126,7 @@ public class Article extends SnowballStateMember {
   }
 
   public synchronized List<Author> getAuthors() {
-    return Collections.unmodifiableList(authors);
+    return Collections.unmodifiableList(new ArrayList<>(authors));
   }
 
   public synchronized ListModel<Author> getAuthorsListModel() {
@@ -155,7 +155,7 @@ public class Article extends SnowballStateMember {
   }
 
   public synchronized List<Article> getReferences() {
-    return Collections.unmodifiableList(references);
+    return Collections.unmodifiableList(new ArrayList<>(references));
   }
 
   public synchronized ListModel<Article> getReferenceListModel() {
@@ -163,7 +163,7 @@ public class Article extends SnowballStateMember {
   }
 
   public synchronized List<Article> getReferencesTo() {
-    return Collections.unmodifiableList(referencesTo);
+    return Collections.unmodifiableList(new ArrayList<>(referencesTo));
   }
 
   public synchronized ListModel<Article> getReferencesToListModel() {
@@ -171,7 +171,7 @@ public class Article extends SnowballStateMember {
   }
 
   public synchronized List<Tag> getTags() {
-    return Collections.unmodifiableList(tags);
+    return Collections.unmodifiableList(new ArrayList<>(tags));
   }
 
   public synchronized ListModel<Tag> getTagListModel() {
@@ -188,6 +188,48 @@ public class Article extends SnowballStateMember {
 
   public synchronized String getYear() {
     return year;
+  }
+
+  public synchronized void merge(Article merged) {
+    if (Objects.requireNonNull(merged) == this) {
+      throw new IllegalArgumentException("Attempted to merge article with itself.");
+    }
+    SnowballState state = getState();
+    if (merged.getState() != state) {
+      throw new IllegalArgumentException("Attempted to merge articles belonging to different "
+          + "states.");
+    }
+
+    for (Author au : merged.getAuthors()) {
+      if (!getAuthors().contains(au)) {
+        addAuthor(au);
+      }
+    }
+
+    for (Article art : state.getArticles()) {
+      if (art == this || art == merged) {
+        continue;
+      }
+      if (art.getReferences().contains(merged)) {
+        art.removeReference(merged);
+        if (!art.getReferences().contains(this)) {
+          art.addReference(this);
+        }
+      }
+    }
+
+    for (Article ref : merged.getReferences()) {
+      if (!getReferences().contains(ref) && ref != this) {
+        addReference(ref);
+      }
+    }
+
+    for (Tag tag : merged.getTags()) {
+      if (!getTags().contains(tag)) {
+        addTag(tag);
+      }
+    }
+    merged.remove();
   }
 
   public synchronized void removeAuthor(Author author) {
@@ -221,12 +263,12 @@ public class Article extends SnowballStateMember {
 
   @Override
   public synchronized void remove() {
-    for (Article art : new ArrayList<>(getState().getArticles())) {
+    for (Article art : getState().getArticles()) {
       if (art.getReferences().contains(this)) {
         art.removeReference(this);
       }
     }
-    for (Article art : new ArrayList<>(references)) {
+    for (Article art : references) {
       removeReference(art);
     }
     getState().removeMember(this);

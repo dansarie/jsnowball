@@ -132,6 +132,25 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   };
   private JButton importReferencesButton = new JButton(importReferencesAction);
 
+  private Action mergeArticlesAction = new AbstractAction("Merge articles") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      ArrayList<Article> articles = new ArrayList<>(getItem().getState().getArticles());
+      articles.remove(getItem());
+      if (articles.size() == 0) {
+        return;
+      }
+      Article art = (Article)JOptionPane.showInputDialog(ArticlePanel.this,
+          "Select the article you wish to merge into this one.", "Merge articles",
+          JOptionPane.QUESTION_MESSAGE, null, articles.toArray(), articles.get(0));
+      if (art == null) {
+        return;
+      }
+      getItem().merge(art);
+    }
+  };
+  private JButton mergeButton = new JButton(mergeArticlesAction);
+
   private ActionListener journalListener = new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent ev) {
@@ -198,6 +217,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     addComponent("Referenced by", referencedByScrollPane);
     addComponent("", deleteButton);
     addComponent("", importReferencesButton);
+    addComponent("", mergeButton);
     disableComponents();
 
     journal.addActionListener(journalListener);

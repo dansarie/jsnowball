@@ -44,7 +44,7 @@ class SnowballListModel<E> implements ListModel<E> {
   void fireChanged(E item) {
     int idx = list.indexOf(item);
     if (idx < 0) {
-      throw new IllegalArgumentException();
+      return;
     }
     ListDataEvent ev = new ListDataEvent(this, ListDataEvent.CONTENTS_CHANGED, idx, idx);
     for (ListDataListener li : listeners) {
