@@ -1,8 +1,9 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+
+import org.json.JSONObject;
 
 public class Tag extends SnowballStateMember {
   private String name = "";
@@ -79,14 +80,25 @@ public class Tag extends SnowballStateMember {
     setNotes(proxy.notes);
   }
 
-  static class SerializationProxy implements Serializable {
-    static final long serialVersionUID = 4350613725999012654L;
-    private String name;
-    private String notes;
+  static class SerializationProxy {
+    private final String name;
+    private final String notes;
+
+    SerializationProxy(JSONObject json) {
+      name = json.getString("name");
+      notes = json.getString("notes");
+    }
 
     private SerializationProxy(Tag ta) {
       name = ta.name;
       notes = ta.getNotes();
+    }
+
+    JSONObject toJson() {
+      JSONObject json = new JSONObject();
+      json.put("name", name);
+      json.put("notes", notes);
+      return json;
     }
   }
 }

@@ -1,9 +1,11 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class Author extends SnowballStateMember {
@@ -162,13 +164,20 @@ public class Author extends SnowballStateMember {
     setOrgName(proxy.orgname);
   }
 
-  static class SerializationProxy implements Serializable {
-    static final long serialVersionUID = 5154001552990566490L;
-    private String firstname;
-    private String lastname;
-    private String notes;
-    private String orcid;
-    private String orgname;
+  static class SerializationProxy {
+    private final String firstname;
+    private final String lastname;
+    private final String notes;
+    private final String orcid;
+    private final String orgname;
+
+    SerializationProxy(JSONObject json) throws JSONException {
+      firstname = json.getString("firstname");
+      lastname = json.getString("lastname");
+      notes = json.getString("notes");
+      orcid = json.getString("orcid");
+      orgname = json.getString("orgname");
+    }
 
     private SerializationProxy(Author au) {
       firstname = au.firstname;
@@ -176,6 +185,16 @@ public class Author extends SnowballStateMember {
       notes = au.getNotes();
       orcid = au.orgname;
       orgname = au.orgname;
+    }
+
+    JSONObject toJson() {
+      JSONObject json = new JSONObject();
+      json.put("firstname", firstname);
+      json.put("lastname", lastname);
+      json.put("notes", notes);
+      json.put("orcid", orcid);
+      json.put("orgname", orgname);
+      return json;
     }
   }
 }

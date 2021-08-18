@@ -1,8 +1,5 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
@@ -11,7 +8,11 @@ import java.util.List;
 import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
 
-public class SnowballState implements Serializable {
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class SnowballState {
   private List<Article> articles = new ArrayList<>();
   private List<Author> authors = new ArrayList<>();
   private List<Journal> journals = new ArrayList<>();
@@ -26,7 +27,7 @@ public class SnowballState implements Serializable {
   public SnowballState() {
   }
 
-  private SnowballState(SerializationProxy sp) throws InvalidObjectException {
+  private SnowballState(SerializationProxy sp) {
     ArrayList<Author> loadedAuthors = new ArrayList<>();
     for (Author.SerializationProxy proxy : sp.authors) {
       Author au = new Author(this);
@@ -59,6 +60,10 @@ public class SnowballState implements Serializable {
           loadedJournals, loadedTags);
     }
     saved = true;
+  }
+
+  public static SnowballState fromJson(String json) throws JSONException {
+    return new SnowballState(new SnowballState.SerializationProxy(new JSONObject(json)));
   }
 
   synchronized void fireUpdated(SnowballStateMember updated) {
@@ -211,17 +216,11 @@ public class SnowballState implements Serializable {
     return tagListModel;
   }
 
-  synchronized private Object writeReplace() {
-    saved = true;
+  public SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  synchronized private void readObject(ObjectInputStream ois) throws InvalidObjectException {
-    throw new InvalidObjectException("Use of serialization proxy required.");
-  }
-
-  private static class SerializationProxy implements Serializable {
-    static final long serialVersionUID = 4303753722544919601L;
+  public static class SerializationProxy {
     private Article.SerializationProxy[] articles;
     private Author.SerializationProxy[] authors;
     private Journal.SerializationProxy[] journals;
@@ -250,8 +249,63 @@ public class SnowballState implements Serializable {
       }
     }
 
-    private Object readResolve() throws InvalidObjectException {
-      return new SnowballState(this);
+    SerializationProxy(JSONObject json) throws JSONException {
+      if (!json.getString("version").equals("1.0")) {
+        throw new RuntimeException();
+      }
+      JSONArray ar = json.getJSONArray("articles");
+      articles = new Article.SerializationProxy[ar.length()];
+      for (int i = 0; i < ar.length(); i++) {
+        articles[i] = new Article.SerializationProxy(ar.getJSONObject(i));
+      }
+
+      JSONArray au = json.getJSONArray("authors");
+      authors = new Author.SerializationProxy[au.length()];
+      for (int i = 0; i < au.length(); i++) {
+        authors[i] = new Author.SerializationProxy(au.getJSONObject(i));
+      }
+
+      JSONArray jo = json.getJSONArray("journals");
+      journals = new Journal.SerializationProxy[jo.length()];
+      for (int i = 0; i < jo.length(); i++) {
+        journals[i] = new Journal.SerializationProxy(jo.getJSONObject(i));
+      }
+
+      JSONArray ta = json.getJSONArray("tags");
+      tags = new Tag.SerializationProxy[ta.length()];
+      for (int i = 0; i < ta.length(); i++) {
+        tags[i] = new Tag.SerializationProxy(ta.getJSONObject(i));
+      }
+    }
+
+    public String toJson() {
+      JSONArray articleArray = new JSONArray();
+      for (Article.SerializationProxy a : articles) {
+        articleArray.put(a.toJson());
+      }
+
+      JSONArray authorArray = new JSONArray();
+      for (Author.SerializationProxy a : authors) {
+        authorArray.put(a.toJson());
+      }
+
+      JSONArray journalArray = new JSONArray();
+      for (Journal.SerializationProxy j : journals) {
+        journalArray.put(j.toJson());
+      }
+
+      JSONArray tagArray = new JSONArray();
+      for (Tag.SerializationProxy t : tags) {
+        tagArray.put(t.toJson());
+      }
+
+      JSONObject json = new JSONObject();
+      json.put("version", "1.0");
+      json.put("articles", articleArray);
+      json.put("authors", authorArray);
+      json.put("journals", journalArray);
+      json.put("tags", tagArray);
+      return json.toString(2);
     }
   }
 }

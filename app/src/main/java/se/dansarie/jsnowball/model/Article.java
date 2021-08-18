@@ -1,6 +1,5 @@
 package se.dansarie.jsnowball.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -8,6 +7,10 @@ import java.util.Objects;
 
 import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class Article extends SnowballStateMember {
 
@@ -390,20 +393,49 @@ public class Article extends SnowballStateMember {
     }
   }
 
-  static class SerializationProxy implements Serializable {
-    static final long serialVersionUID = 7198211239321687296L;
-    private String doi;
-    private String issue;
-    private String month;
-    private String notes;
-    private String pages;
-    private String title;
-    private String volume;
-    private String year;
-    private int[] authors;
-    private int journal;
-    private int[] references;
-    private int[] tags;
+  static class SerializationProxy {
+    private final String doi;
+    private final String issue;
+    private final String month;
+    private final String notes;
+    private final String pages;
+    private final String title;
+    private final String volume;
+    private final String year;
+    private final int[] authors;
+    private final int journal;
+    private final int[] references;
+    private final int[] tags;
+
+    SerializationProxy(JSONObject json) throws JSONException {
+      doi = json.getString("doi");
+      issue = json.getString("issue");
+      journal = json.getInt("journal");
+      month = json.getString("month");
+      notes = json.getString("notes");
+      pages = json.getString("pages");
+      title = json.getString("title");
+      volume = json.getString("volume");
+      year = json.getString("year");
+
+      JSONArray au = json.getJSONArray("authors");
+      authors = new int[au.length()];
+      for (int i = 0; i < au.length(); i++) {
+        authors[i] = au.getInt(i);
+      }
+
+      JSONArray ref = json.getJSONArray("references");
+      references = new int[ref.length()];
+      for (int i = 0; i < ref.length(); i++) {
+        references[i] = ref.getInt(i);
+      }
+
+      JSONArray ta = json.getJSONArray("tags");
+      tags = new int[ta.length()];
+      for (int i = 0; i < ta.length(); i++) {
+        tags[i] = ta.getInt(i);
+      }
+    }
 
     private SerializationProxy(Article art) {
       doi = art.doi;
@@ -439,6 +471,23 @@ public class Article extends SnowballStateMember {
       for (int i = 0; i < art.tags.size(); i++) {
         tags[i] = taglist.indexOf(art.tags.get(i));
       }
+    }
+
+    JSONObject toJson() {
+      JSONObject json = new JSONObject();
+      json.put("doi", doi);
+      json.put("issue", issue);
+      json.put("journal", journal);
+      json.put("month", month);
+      json.put("notes", notes);
+      json.put("pages", pages);
+      json.put("title", title);
+      json.put("volume", volume);
+      json.put("year", year);
+      json.put("authors", authors);
+      json.put("references", references);
+      json.put("tags", tags);
+      return json;
     }
   }
  }

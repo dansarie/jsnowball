@@ -9,11 +9,9 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Objects;
@@ -44,6 +42,8 @@ import javax.swing.event.ListDataListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
+
+import org.json.JSONException;
 
 import se.dansarie.jsnowball.gui.ArticlePanel;
 import se.dansarie.jsnowball.gui.AuthorPanel;
@@ -135,15 +135,7 @@ public class JSnowball {
       }
       saveDirectoryPreference(fi);
       updateRecentFiles(fi);
-      try (FileInputStream fis = new FileInputStream(fi);
-          ObjectInputStream ois = new ObjectInputStream(fis)) {
-        SnowballState newState = (SnowballState)ois.readObject();
-        setState(newState);
-        currentFile = fi;
-      } catch (ClassCastException | ClassNotFoundException | IOException ex) {
-        JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
-            + " file.", "File error", JOptionPane.ERROR_MESSAGE);
-      }
+      loadState(fi);
     }
   };
 
@@ -476,6 +468,17 @@ public class JSnowball {
     tagTableModel.addWatched(articleListModel);
   }
 
+  private void loadState(File fi) {
+    try  {
+      String json = Files.readString(fi.toPath());
+      setState(SnowballState.fromJson(json));
+      currentFile = fi;
+    } catch (IOException | JSONException ex) {
+      JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
+          + " file.", "File error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
   private boolean saveState(boolean askFirst, boolean showDialog) {
     if (askFirst) {
       if (state.isSaved()) {
@@ -505,10 +508,8 @@ public class JSnowball {
     } else {
       fi = currentFile;
     }
-
-    try (FileOutputStream fos = new FileOutputStream(fi);
-        ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-      oos.writeObject(state);
+    try (PrintWriter pw = new PrintWriter(fi)) {
+      pw.print(state.getSerializationProxy().toJson());
     } catch (IOException ex) {
       JOptionPane.showMessageDialog(frame, "An error occured while attempting to save the project"
           + " file.", "File error", JOptionPane.ERROR_MESSAGE);
@@ -778,15 +779,7 @@ public class JSnowball {
             return;
           }
         }
-        try (FileInputStream fis = new FileInputStream(fi);
-            ObjectInputStream ois = new ObjectInputStream(fis)) {
-          SnowballState newState = (SnowballState)ois.readObject();
-          setState(newState);
-          currentFile = fi;
-        } catch (ClassCastException | ClassNotFoundException | IOException ex) {
-          JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the "
-              + "project file.", "File error", JOptionPane.ERROR_MESSAGE);
-        }
+        loadState(fi);
       });
       openrecentmenu.add(recentItem);
     }
