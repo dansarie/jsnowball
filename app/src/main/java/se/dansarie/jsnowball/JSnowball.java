@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.prefs.Preferences;
@@ -47,6 +48,7 @@ import org.json.JSONException;
 
 import se.dansarie.jsnowball.gui.ArticlePanel;
 import se.dansarie.jsnowball.gui.AuthorPanel;
+import se.dansarie.jsnowball.gui.GraphPanel;
 import se.dansarie.jsnowball.gui.JournalPanel;
 import se.dansarie.jsnowball.gui.TagPanel;
 import se.dansarie.jsnowball.model.Article;
@@ -86,6 +88,47 @@ public class JSnowball {
   private ListSelectionWatcher<Journal> journalSelectionWatcher;
   private ListSelectionWatcher<Tag> tagSelectionWatcher;
   private File currentFile = null;
+
+  private GraphPanel<Article> articleGraph = new GraphPanel<>() {
+    @Override
+    public ListModel<Article> getListModel() {
+      if (getState() == null) {
+        return null;
+      }
+      return getState().getArticleListModel();
+    }
+
+    @Override
+    public List<Article> getEdges(Article member) {
+      return member.getReferences();
+    }
+  };
+
+  private GraphPanel<Author> authorGraph = new GraphPanel<>() {
+    @Override
+    public ListModel<Author> getListModel() {
+      if (getState() == null) {
+        return null;
+      }
+      return getState().getAuthorListModel();
+    }
+
+    @Override
+    public List<Author> getEdges(Author member) {
+      ArrayList<Author> edgeAuthors = new ArrayList<>();
+      for (Article ar: member.getArticles()) {
+        for (Author au : ar.getAuthors()) {
+          if (au == null) {
+            throw new RuntimeException();
+          }
+          if (au != null && au != member && !edgeAuthors.contains(au)) {
+            edgeAuthors.add(au);
+          }
+        }
+      }
+      return edgeAuthors;
+    }
+  };
 
   private Action exitAction = new AbstractAction("Quit") {
     {
@@ -466,6 +509,8 @@ public class JSnowball {
     tagTableModel.setModel(tagListModel);
     tagTableModel.clearWatched();
     tagTableModel.addWatched(articleListModel);
+    articleGraph.setState(state);
+    authorGraph.setState(state);
   }
 
   private void loadState(File fi) {
@@ -647,8 +692,8 @@ public class JSnowball {
     journalTable.setAutoCreateRowSorter(true);
     tagTable.setAutoCreateRowSorter(true);
 
-    rightTabbedPane.add(new JPanel(), "Article graph");
-    rightTabbedPane.add(new JPanel(), "Author graph");
+    rightTabbedPane.add(new JScrollPane(articleGraph), "Article graph");
+    rightTabbedPane.add(new JScrollPane(authorGraph), "Author graph");
     rightTabbedPane.add(new JScrollPane(articleTable), "Articles");
     rightTabbedPane.add(new JScrollPane(authorTable), "Authors");
     rightTabbedPane.add(new JScrollPane(journalTable), "Journals");
