@@ -87,6 +87,7 @@ public class SnowballState {
       throw new IllegalStateException();
     }
     Collections.sort(list);
+    @SuppressWarnings("unchecked")
     final SnowballListModel<SnowballStateMember> lm =
         (SnowballListModel<SnowballStateMember>)listModel;
     SwingUtilities.invokeLater(() -> lm.fireChanged(updated));
