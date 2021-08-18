@@ -11,19 +11,19 @@ abstract class SnowballStateMember implements Comparable<SnowballStateMember> {
     state.addMember(this);
   }
 
-  protected void fireUpdated() {
+  protected synchronized void fireUpdated() {
     state.fireUpdated(this);
   }
 
-  public SnowballState getState() {
+  public synchronized SnowballState getState() {
    return state;
   }
 
-  public String getNotes() {
+  public synchronized String getNotes() {
     return notes;
   }
 
-  public void setNotes(String notes) {
+  public synchronized void setNotes(String notes) {
     this.notes = Objects.requireNonNullElse(notes, "");
   }
 

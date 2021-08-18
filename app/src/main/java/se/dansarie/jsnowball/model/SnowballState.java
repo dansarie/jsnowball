@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.List;
 
 import javax.swing.ListModel;
+import javax.swing.SwingUtilities;
 
 public class SnowballState implements Serializable {
   private List<Article> articles = new ArrayList<>();
@@ -60,31 +61,37 @@ public class SnowballState implements Serializable {
     saved = true;
   }
 
-  void fireUpdated(SnowballStateMember updated) {
+  synchronized void fireUpdated(SnowballStateMember updated) {
     Objects.requireNonNull(updated);
     saved = false;
+    List<? extends SnowballStateMember> list = null;
+    SnowballListModel<? extends SnowballStateMember> listModel = null;
     if (updated instanceof Article) {
-      Collections.sort(articles);
-      articleListModel.fireChanged((Article)updated);
+      list = articles;
+      listModel = articleListModel;
     } else if (updated instanceof Author) {
-      Collections.sort(authors);
-      authorListModel.fireChanged((Author)updated);
+      list = authors;
+      listModel = authorListModel;
     } else if (updated instanceof Journal) {
-      Collections.sort(journals);
-      journalListModel.fireChanged((Journal)updated);
+      list = journals;
+      listModel = journalListModel;
     } else if (updated instanceof Tag) {
-      Collections.sort(tags);
-      tagListModel.fireChanged((Tag)updated);
+      list = tags;
+      listModel = tagListModel;
     } else {
       throw new IllegalStateException();
     }
+    Collections.sort(list);
+    final SnowballListModel<SnowballStateMember> lm =
+        (SnowballListModel<SnowballStateMember>)listModel;
+    SwingUtilities.invokeLater(() -> lm.fireChanged(updated));
   }
 
-  public boolean isSaved() {
+  public synchronized boolean isSaved() {
     return saved;
   }
 
-  void removeMember(SnowballStateMember member) {
+  synchronized void removeMember(SnowballStateMember member) {
     if (Objects.requireNonNull(member).getState() != this) {
       throw new IllegalArgumentException("Attempted to remove member from wrong state.");
     }
@@ -106,12 +113,13 @@ public class SnowballState implements Serializable {
     } else {
       throw new IllegalStateException();
     }
-    int idx = list.indexOf(member);
+    final int idx = list.indexOf(member);
     list.remove(idx);
-    listModel.fireRemoved(idx);
+    final SnowballListModel<? extends SnowballStateMember> lm = listModel;
+    SwingUtilities.invokeLater(() -> lm.fireRemoved(idx));
   }
 
-  void addMember(SnowballStateMember member) {
+  synchronized void addMember(SnowballStateMember member) {
     if (member instanceof Article) {
       addMember((Article)member, articles);
     } else if (member instanceof Author) {
@@ -125,7 +133,7 @@ public class SnowballState implements Serializable {
     }
   }
 
-  <E extends SnowballStateMember> void addMember(E member, List<E> li) {
+  synchronized <E extends SnowballStateMember> void addMember(E member, List<E> li) {
     if (li.contains(Objects.requireNonNull(member))) {
       throw new IllegalStateException();
     }
@@ -136,7 +144,7 @@ public class SnowballState implements Serializable {
     fireUpdated(member);
   }
 
-  public Author getAuthorFromStrings(String firstName, String lastName) {
+  synchronized public Author getAuthorFromStrings(String firstName, String lastName) {
     for (Author a : authors) {
       if (a.getFirstName().equalsIgnoreCase(firstName)
           && a.getLastName().equalsIgnoreCase(lastName)) {
@@ -149,7 +157,7 @@ public class SnowballState implements Serializable {
     return a;
   }
 
-  public Journal getJournalFromString(String name) {
+  synchronized public Journal getJournalFromString(String name) {
     for (Journal j : journals) {
       if (j.getName().equals(name)) {
         return j;
@@ -160,7 +168,7 @@ public class SnowballState implements Serializable {
     return j;
   }
 
-  public Journal getJournalFromIssn(String issn) {
+  synchronized public Journal getJournalFromIssn(String issn) {
     for (Journal j : journals) {
       if (j.getIssn().equals(issn)) {
         return j;
@@ -171,44 +179,44 @@ public class SnowballState implements Serializable {
     return j;
   }
 
-  public List<Article> getArticles() {
+  synchronized public List<Article> getArticles() {
     return Collections.unmodifiableList(articles);
   }
 
-  public List<Author> getAuthors() {
+  synchronized public List<Author> getAuthors() {
     return Collections.unmodifiableList(authors);
   }
 
-  public List<Journal> getJournals() {
+  synchronized public List<Journal> getJournals() {
     return Collections.unmodifiableList(journals);
   }
 
-  public List<Tag> getTags() {
+  synchronized public List<Tag> getTags() {
     return Collections.unmodifiableList(tags);
   }
 
-  public ListModel<Article> getArticleListModel() {
+  synchronized public ListModel<Article> getArticleListModel() {
     return articleListModel;
   }
 
-  public ListModel<Author> getAuthorListModel() {
+  synchronized public ListModel<Author> getAuthorListModel() {
     return authorListModel;
   }
 
-  public ListModel<Journal> getJournalListModel() {
+  synchronized public ListModel<Journal> getJournalListModel() {
     return journalListModel;
   }
 
-  public ListModel<Tag> getTagListModel() {
+  synchronized public ListModel<Tag> getTagListModel() {
     return tagListModel;
   }
 
-  private Object writeReplace() {
+  synchronized private Object writeReplace() {
     saved = true;
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream ois) throws InvalidObjectException {
+  synchronized private void readObject(ObjectInputStream ois) throws InvalidObjectException {
     throw new InvalidObjectException("Use of serialization proxy required.");
   }
 

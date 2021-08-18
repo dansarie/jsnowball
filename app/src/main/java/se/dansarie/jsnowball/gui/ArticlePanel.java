@@ -84,63 +84,41 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
       pm.setMillisToPopup(500);
       pm.setMillisToDecideToPopup(100);
       Article article = getItem();
-      SnowballState state = getItem().getState();
 
       SwingWorker<Void, Void> w = new SwingWorker<>() {
         @Override
         protected Void doInBackground() {
+          CrossRef cr;
           try {
-            CrossRef art = CrossRef.getDoi(doi);
-            SwingUtilities.invokeLater(() -> pm.setMaximum(art.references.size() + 1));
-            int i = 1;
-            for (CrossRef.Reference r : art.references) {
-              final int p = i++;
-              SwingUtilities.invokeLater(() -> pm.setProgress(p));
-              if (r.doi != null) {
-                SwingUtilities.invokeLater(() -> pm.setNote("Retrieving data for " + r.doi));
-                CrossRef cr = CrossRef.getDoi(r.doi);
-                SwingUtilities.invokeLater(() -> {
-                  Article ar = new Article(state, cr);
-                  article.addReference(ar);
-                });
-              } else if (r.title != null) {
-                SwingUtilities.invokeLater(() -> {
-                  Article a = new Article(state);
-                  a.setTitle(r.title);
-                  a.setIssue(r.issue);
-                  a.setPages(r.page);
-                  a.setVolume(r.volume);
-                  a.setYear(r.year);
-                  Journal j = null;
-                  if (r.issn != null) {
-                    j = Journal.getByIssn(state, r.issn);
-                  }
-                  if (j == null && r.journal != null) {
-                    j = Journal.getByName(state, r.journal);
-                  }
-                  if (j == null && r.journal != null) {
-                    j = new Journal(state);
-                    j.setName(r.journal);
-                    j.setIssn(r.issn);
-                  }
-                  if (j != null) {
-                    a.setJournal(j);
-                  }
-                  if (r.author != null) {
-                    Author au = Author.getByName(state, "", r.author);
-                    if (au == null) {
-                      au = new Author(state);
-                      au.setLastName(r.author);
-                    }
-                    a.addAuthor(au);
-                  }
-                  article.addReference(a);
-                });
-              }
-            }
-          } catch (IOException | RuntimeException ex) {
-            System.out.println(ex);
+            cr = CrossRef.getDoi(doi);
+          } catch (IOException ex) {
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(ArticlePanel.this,
+                "Error when retrieving article metadata.", "Import references",
+                JOptionPane.ERROR_MESSAGE));
+            return null;
           }
+          int i = 1;
+          pm.setMaximum(cr.references.size());
+            for (CrossRef.Reference ref : cr.references) {
+              StringBuilder note = new StringBuilder("Retrieving");
+              if (ref.title != null) {
+                note.append(" \"");
+                note.append(ref.title);
+                note.append("\"");
+              } else if (ref.doi != null) {
+                note.append(" ");
+                note.append(ref.doi);
+              }
+              note.append("...");
+              pm.setNote(note.toString());
+              try {
+                CrossRef.addCrossRefReference(article, ref);
+              } catch (IOException | RuntimeException ex) {
+                System.out.println(ex);
+                ex.printStackTrace();
+              }
+              pm.setProgress(i++);
+            }
           return null;
         }
 
@@ -164,9 +142,10 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
       Article a = getItem();
       if (idx == 0) {
         a.setJournal(null);
+      } else {
+        Journal j = a.getState().getJournals().get(idx - 1);
+        a.setJournal(j);
       }
-      Journal j = a.getState().getJournals().get(idx - 1);
-      a.setJournal(j);
     }
   };
 
@@ -313,12 +292,11 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     for (Journal j : s.getJournals()) {
       String name = j.getName();
       journal.addItem(name);
-      if (j == a.getJournal()) {
-        journal.setSelectedItem(name);
-      }
     }
     if (a.getJournal() == null) {
       journal.setSelectedIndex(0);
+    } else {
+      journal.setSelectedItem(a.getJournal().getName());
     }
     journal.addActionListener(journalListener);
   }

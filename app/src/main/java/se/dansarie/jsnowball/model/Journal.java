@@ -12,7 +12,7 @@ public class Journal extends SnowballStateMember {
     super(state);
   }
 
-  public String getIssn() {
+  public synchronized String getIssn() {
     return issn;
   }
 
@@ -20,7 +20,7 @@ public class Journal extends SnowballStateMember {
     return name;
   }
 
-  public void merge(Journal merged) {
+  public synchronized void merge(Journal merged) {
     if (Objects.requireNonNull(merged) == this) {
       throw new IllegalArgumentException("Attempted to merge author with itself.");
     }
@@ -36,18 +36,18 @@ public class Journal extends SnowballStateMember {
     getState().removeMember(merged);
   }
 
-  public void setName(String name) {
+  public synchronized void setName(String name) {
     this.name = Objects.requireNonNullElse(name, "");
     fireUpdated();
   }
 
-  public void setIssn(String issn) {
+  public synchronized void setIssn(String issn) {
     this.issn = Objects.requireNonNullElse(issn, "");
     fireUpdated();
   }
 
   @Override
-  public int compareTo(SnowballStateMember other) {
+  public synchronized int compareTo(SnowballStateMember other) {
     Journal o = (Journal)other;
     if (getName() == null) {
       if (o.getName() == null) {
@@ -62,7 +62,7 @@ public class Journal extends SnowballStateMember {
   }
 
   @Override
-  public void remove() {
+  public synchronized void remove() {
     for (Article art : new ArrayList<>(getState().getArticles())) {
       if (art.getJournal() == this) {
         art.setJournal(null);
@@ -72,7 +72,7 @@ public class Journal extends SnowballStateMember {
   }
 
   @Override
-  public String toString() {
+  public synchronized String toString() {
     return getName();
   }
 
@@ -94,11 +94,11 @@ public class Journal extends SnowballStateMember {
     return null;
   }
 
-  SerializationProxy getSerializationProxy() {
+  synchronized SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  void restoreFromProxy(SerializationProxy proxy) {
+  synchronized void restoreFromProxy(SerializationProxy proxy) {
     setIssn(proxy.issn);
     setName(proxy.name);
     setNotes(proxy.notes);

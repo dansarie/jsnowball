@@ -57,10 +57,13 @@ public class CrossRef {
         DateTimeFormatter.ISO_DATE_TIME);
     indexed = LocalDateTime.parse(json.getJSONObject("indexed").getString("date-time"),
         DateTimeFormatter.ISO_DATE_TIME);
-
     JSONArray issuedArray = json.getJSONObject("issued").getJSONArray("date-parts").getJSONArray(0);
-    issued = LocalDate.of(issuedArray.getInt(0), issuedArray.optInt(1, 1),
-        issuedArray.optInt(2, 1));
+    if (!issuedArray.isNull(0)) {
+      issued = LocalDate.of(issuedArray.getInt(0), issuedArray.optInt(1, 1),
+          issuedArray.optInt(2, 1));
+    } else {
+      issued = null;
+    }
 
     issue = json.optString("issue", null);
     volume = json.optString("volume", null);
@@ -215,6 +218,60 @@ public class CrossRef {
     }
   }
 
+  public static void addCrossRefReference(Article art, CrossRef.Reference ref) throws IOException {
+    SnowballState state = art.getState();
+    Article a = null;
+    if (ref.doi != null) {
+      a = Article.getByDoi(state, ref.doi);
+    }
+    if (a == null && ref.title != null) {
+      a = Article.getByTitle(state, ref.title);
+    }
+    if (a == null && ref.doi != null) {
+      CrossRef cr = getDoi(ref.doi);
+      a = new Article(art.getState(), cr);
+    } else if (a == null && ref.title != null) {
+      a = new Article(art.getState());
+      a.setTitle(ref.title);
+      a.setIssue(ref.issue);
+      a.setPages(ref.page);
+      a.setVolume(ref.volume);
+      a.setYear(ref.year);
+
+      Journal j = null;
+      if (ref.issn != null) {
+        j = Journal.getByIssn(state, ref.issn);
+      }
+      if (j == null && ref.journal != null) {
+        j = Journal.getByName(state, ref.journal);
+        if (j == null) {
+          j = new Journal(state);
+          j.setName(ref.journal);
+          if (ref.issn != null) {
+            j.setIssn(ref.issn);
+          }
+        }
+      }
+      if (j != null) {
+        a.setJournal(j);
+      }
+
+      if (ref.author != null) {
+        se.dansarie.jsnowball.model.Author au =
+            se.dansarie.jsnowball.model.Author.getByName(state, "", ref.author);
+        if (au == null) {
+          au = new se.dansarie.jsnowball.model.Author(state);
+          au.setLastName(ref.author);
+        }
+        a.addAuthor(au);
+      }
+    }
+
+    if (a != null) {
+      art.addReference(a);
+    }
+  }
+
   public static class Author {
     public final String firstName;
     public final String lastName;
@@ -250,6 +307,33 @@ public class CrossRef {
       title = r.optString("article-title", null);
       volume = r.optString("volume", null);
       year = r.optString("year", null);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("CrossRef.Reference [");
+      sb.append("author: ");
+      sb.append(author);
+      sb.append(" doi: ");
+      sb.append(doi);
+      sb.append(" issn: ");
+      sb.append(issn);
+      sb.append(" issue: ");
+      sb.append(issue);
+      sb.append(" journal: ");
+      sb.append(journal);
+      sb.append(" key: ");
+      sb.append(key);
+      sb.append(" page: ");
+      sb.append(page);
+      sb.append(" title: ");
+      sb.append(title);
+      sb.append(" volume: ");
+      sb.append(volume);
+      sb.append(" year: ");
+      sb.append(year);
+      sb.append("]");
+      return sb.toString();
     }
   }
 }

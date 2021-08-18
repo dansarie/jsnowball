@@ -23,7 +23,7 @@ public class Author extends SnowballStateMember {
     setOrcId(r.orcid);
   }
 
-  public List<Article> getArticles() {
+  public synchronized List<Article> getArticles() {
     ArrayList<Article> articles = new ArrayList<>();
     for (Article art : getState().getArticles()) {
       if (art.getAuthors().contains(this)) {
@@ -33,23 +33,23 @@ public class Author extends SnowballStateMember {
     return articles;
   }
 
-  public String getFirstName() {
+  public synchronized String getFirstName() {
     return firstname;
   }
 
-  public String getLastName() {
+  public synchronized String getLastName() {
     return lastname;
   }
 
-  public String getOrgName() {
+  public synchronized String getOrgName() {
     return orgname;
   }
 
-  public String getOrcId() {
+  public synchronized String getOrcId() {
     return orcid;
   }
 
-  public void merge(Author merged) {
+  public synchronized void merge(Author merged) {
     if (Objects.requireNonNull(merged) == this) {
       throw new IllegalArgumentException("Attempted to merge author with itself.");
     }
@@ -70,7 +70,7 @@ public class Author extends SnowballStateMember {
   }
 
   @Override
-  public void remove() {
+  public synchronized void remove() {
     for (Article art : new ArrayList<>(getState().getArticles())) {
       if (art.getAuthors().contains(this)) {
         art.removeAuthor(this);
@@ -79,28 +79,28 @@ public class Author extends SnowballStateMember {
     getState().removeMember(this);
   }
 
-  public void setFirstName(String name) {
+  public synchronized void setFirstName(String name) {
     firstname = Objects.requireNonNullElse(name, "");
     fireUpdated();
   }
 
-  public void setLastName(String name) {
+  public synchronized void setLastName(String name) {
     lastname = Objects.requireNonNullElse(name, "");
     fireUpdated();
   }
 
-  public void setOrgName(String name) {
+  public synchronized void setOrgName(String name) {
     orgname = Objects.requireNonNullElse(name, "");
     fireUpdated();
   }
 
-  public void setOrcId(String id) {
+  public synchronized void setOrcId(String id) {
     orcid = Objects.requireNonNullElse(id, "");
     fireUpdated();
   }
 
   @Override
-  public int compareTo(SnowballStateMember other) {
+  public synchronized int compareTo(SnowballStateMember other) {
     Author o = (Author)other;
     if (getLastName() == null) {
       if (o.getLastName() == null) {
@@ -128,7 +128,7 @@ public class Author extends SnowballStateMember {
   }
 
   @Override
-  public String toString() {
+  public synchronized String toString() {
     return getLastName() + ", " + getFirstName();
   }
 
@@ -150,11 +150,11 @@ public class Author extends SnowballStateMember {
     return null;
   }
 
-  SerializationProxy getSerializationProxy() {
+  synchronized SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  void restoreFromProxy(SerializationProxy proxy) {
+  synchronized void restoreFromProxy(SerializationProxy proxy) {
     setFirstName(proxy.firstname);
     setLastName(proxy.lastname);
     setNotes(proxy.notes);

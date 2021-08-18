@@ -12,11 +12,11 @@ public class Tag extends SnowballStateMember {
     super(state);
   }
 
-  public String getName() {
+  public synchronized String getName() {
     return name;
   }
 
-  public void merge(Tag merged) {
+  public synchronized void merge(Tag merged) {
     if (Objects.requireNonNull(merged) == this) {
       throw new IllegalArgumentException("Attempted to merge tag with itself.");
     }
@@ -36,13 +36,13 @@ public class Tag extends SnowballStateMember {
     getState().removeMember(merged);
   }
 
-  public void setName(String name) {
+  public synchronized void setName(String name) {
     this.name = Objects.requireNonNullElse(name, "");
     fireUpdated();
   }
 
   @Override
-  public int compareTo(SnowballStateMember other) {
+  public synchronized int compareTo(SnowballStateMember other) {
     Tag o = (Tag)other;
     if (getName() == null) {
       if (o.getName() == null) {
@@ -57,7 +57,7 @@ public class Tag extends SnowballStateMember {
   }
 
   @Override
-  public void remove() {
+  public synchronized void remove() {
     for (Article art : new ArrayList<>(getState().getArticles())) {
       if (art.getTags().contains(this)) {
         art.removeTag(this);
@@ -67,15 +67,15 @@ public class Tag extends SnowballStateMember {
   }
 
   @Override
-  public String toString() {
+  public synchronized String toString() {
     return name;
   }
 
-  SerializationProxy getSerializationProxy() {
+  synchronized SerializationProxy getSerializationProxy() {
     return new SerializationProxy(this);
   }
 
-  void restoreFromProxy(SerializationProxy proxy) {
+  synchronized void restoreFromProxy(SerializationProxy proxy) {
     setName(proxy.name);
     setNotes(proxy.notes);
   }
