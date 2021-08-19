@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
@@ -48,6 +49,7 @@ import org.json.JSONException;
 
 import se.dansarie.jsnowball.gui.ArticlePanel;
 import se.dansarie.jsnowball.gui.AuthorPanel;
+import se.dansarie.jsnowball.gui.GraphListener;
 import se.dansarie.jsnowball.gui.GraphPanel;
 import se.dansarie.jsnowball.gui.JournalPanel;
 import se.dansarie.jsnowball.gui.TagPanel;
@@ -226,7 +228,9 @@ public class JSnowball {
         protected void done() {
           try {
             new Article(state, get());
-          } catch (Exception ex) {
+          } catch (ExecutionException | InterruptedException ex) {
+            System.out.println(ex);
+            ex.printStackTrace();
           }
         }
       };
@@ -462,6 +466,20 @@ public class JSnowball {
     }
   };
 
+  private GraphListener<Article> articleGraphSelectionListener = new GraphListener<>() {
+    @Override
+    public void memberSelected(Article art) {
+      articleList.setSelectedValue(art, true);
+    }
+  };
+
+  private GraphListener<Author> authorGraphSelectionListener = new GraphListener<>() {
+    @Override
+    public void memberSelected(Author au) {
+      authorList.setSelectedValue(au, true);
+    }
+  };
+
   private JSnowball() {
     setState(new SnowballState());
     createFrame();
@@ -691,6 +709,8 @@ public class JSnowball {
     authorTable.setAutoCreateRowSorter(true);
     journalTable.setAutoCreateRowSorter(true);
     tagTable.setAutoCreateRowSorter(true);
+    articleGraph.addGraphListener(articleGraphSelectionListener);
+    authorGraph.addGraphListener(authorGraphSelectionListener);
 
     rightTabbedPane.add(new JScrollPane(articleGraph), "Article graph");
     rightTabbedPane.add(new JScrollPane(authorGraph), "Author graph");
@@ -817,14 +837,9 @@ public class JSnowball {
       }
       JMenuItem recentItem = new JMenuItem(path);
       recentItem.addActionListener(ev -> {
-        if (!state.isSaved()) {
-          int result = JOptionPane.showConfirmDialog(frame, "Current project has not been saved. "
-              + "Do you wish to destroy unsaved work?", "Open project", JOptionPane.YES_NO_OPTION);
-          if (result != JOptionPane.YES_OPTION) {
-            return;
-          }
+        if (saveState(true, false)) {
+          loadState(fi);
         }
-        loadState(fi);
       });
       openrecentmenu.add(recentItem);
     }

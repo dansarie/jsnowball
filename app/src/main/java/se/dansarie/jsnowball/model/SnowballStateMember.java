@@ -8,23 +8,56 @@ abstract class SnowballStateMember implements Comparable<SnowballStateMember> {
 
   SnowballStateMember(SnowballState state) {
     this.state = Objects.requireNonNull(state);
-    state.addMember(this);
+    lock();
+    try {
+      state.addMember(this);
+    } finally {
+      unlock();
+    }
   }
 
-  protected synchronized void fireUpdated() {
-    state.fireUpdated(this);
+  protected void lock() {
+    state.lock();
   }
 
-  public synchronized SnowballState getState() {
-   return state;
+  protected void unlock() {
+    state.unlock();
   }
 
-  public synchronized String getNotes() {
-    return notes;
+  protected void fireUpdated() {
+    lock();
+    try {
+      state.fireUpdated(this);
+    } finally {
+      unlock();
+    }
   }
 
-  public synchronized void setNotes(String notes) {
-    this.notes = Objects.requireNonNullElse(notes, "");
+  public SnowballState getState() {
+    lock();
+    try {
+      return state;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getNotes() {
+    lock();
+    try {
+      return notes;
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setNotes(String notes) {
+    lock();
+    try {
+      this.notes = Objects.requireNonNullElse(notes, "");
+    } finally {
+      unlock();
+    }
   }
 
   public abstract void remove();

@@ -39,312 +39,486 @@ public class Article extends SnowballStateMember {
 
   public Article(SnowballState state, CrossRef r) {
     super(state);
-    setDoi(r.doi);
-    setIssue(r.issue);
-    setPages(r.page);
-    setTitle(r.title);
-    setVolume(r.volume);
-    if (r.issued != null) {
-      setMonth("" + r.issued.getMonthValue());
-      setYear("" + r.issued.getYear());
-    }
-    for (CrossRef.Author a : r.authors) {
-      if (a.orcid != null) {
-        Author au = Author.getByOrcid(state, a.orcid);
-        if (au != null) {
+    lock();
+    try {
+      setDoi(r.doi);
+      setIssue(r.issue);
+      setPages(r.page);
+      setTitle(r.title);
+      setVolume(r.volume);
+      if (r.issued != null) {
+        setMonth("" + r.issued.getMonthValue());
+        setYear("" + r.issued.getYear());
+      }
+      for (CrossRef.Author a : r.authors) {
+        if (a.orcid != null) {
+          Author au = Author.getByOrcid(state, a.orcid);
+          if (au != null) {
+            addAuthor(au);
+            continue;
+          }
+        }
+        Author au = Author.getByName(state, a.firstName, a.lastName);
+        if (au == null) {
+          addAuthor(new Author(state, a));
+        } else {
           addAuthor(au);
-          continue;
         }
       }
-      Author au = Author.getByName(state, a.firstName, a.lastName);
-      if (au == null) {
-        addAuthor(new Author(state, a));
-      } else {
-        addAuthor(au);
+      if (r.journal != null) {
+        Journal jo = null;
+        if (r.issn != null) {
+          jo = Journal.getByIssn(state, r.issn);
+        }
+        if (jo == null) {
+          jo = Journal.getByName(state, r.journal);
+        }
+        if (jo == null) {
+          jo = new Journal(state);
+          jo.setName(r.journal);
+          jo.setIssn(r.issn);
+        }
+        setJournal(jo);
       }
-    }
-    if (r.journal != null) {
-      Journal jo = null;
-      if (r.issn != null) {
-        jo = Journal.getByIssn(state, r.issn);
-      }
-      if (jo == null) {
-        jo = Journal.getByName(state, r.journal);
-      }
-      if (jo == null) {
-        jo = new Journal(state);
-        jo.setName(r.journal);
-        jo.setIssn(r.issn);
-      }
-      setJournal(jo);
+    } finally {
+      unlock();
     }
   }
 
-  public synchronized void addAuthor(Author author) {
-    if (Objects.requireNonNull(author).getState() != getState()) {
-      throw new IllegalArgumentException("Article and author belong to different states.");
+  public void addAuthor(Author author) {
+    lock();
+    try {
+      if (Objects.requireNonNull(author).getState() != getState()) {
+        throw new IllegalArgumentException("Article and author belong to different states.");
+      }
+      if (!authors.contains(author)) {
+        authors.add(author);
+        Collections.sort(authors);
+        SwingUtilities.invokeLater(() -> authorsListModel.fireAdded(author));
+        fireUpdated();
+      }
+    } finally {
+      unlock();
     }
-    if (!authors.contains(author)) {
-      authors.add(author);
-      Collections.sort(authors);
-      SwingUtilities.invokeLater(() -> authorsListModel.fireAdded(author));
+  }
+
+  public void addReference(Article ref) {
+    lock();
+    try {
+      if (Objects.requireNonNull(ref) == this) {
+        throw new IllegalArgumentException("Circular references not allowed.");
+      }
+      if (ref.getState() != getState()) {
+        throw new IllegalArgumentException("Article and reference belong to different states.");
+      }
+      if (!references.contains(ref)) {
+        if (ref.referencesTo.contains(this)) {
+          throw new IllegalStateException();
+        }
+        references.add(ref);
+        ref.referencesTo.add(this);
+        Collections.sort(references);
+        Collections.sort(ref.referencesTo);
+        SwingUtilities.invokeLater(() -> {
+          referenceListModel.fireAdded(ref);
+          ref.referencesToListModel.fireAdded(this);
+        });
+        fireUpdated();
+        ref.fireUpdated();
+      }
+    } finally {
+      unlock();
+    }
+  }
+
+  public void addTag(Tag tag) {
+    lock();
+    try {
+      if (tag.getState() != getState()) {
+        throw new IllegalArgumentException("Article and tag belong to different states.");
+      }
+      if (!tags.contains(tag)) {
+        tags.add(tag);
+        Collections.sort(tags);
+        SwingUtilities.invokeLater(() -> tagListModel.fireAdded(tag));
+        fireUpdated();
+      }
+    } finally {
+      unlock();
+    }
+  }
+
+  public List<Author> getAuthors() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(authors));
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Author> getAuthorsListModel() {
+    lock();
+    try {
+      return authorsListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getDoi() {
+    lock();
+    try {
+      return doi;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getIssue() {
+    lock();
+    try {
+      return issue;
+    } finally {
+      unlock();
+    }
+  }
+
+  public Journal getJournal() {
+    lock();
+    try {
+      return journal;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getMonth() {
+    lock();
+    try {
+      return month;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getPages() {
+    lock();
+    try {
+      return pages;
+    } finally {
+      unlock();
+    }
+  }
+
+  public List<Article> getReferences() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(references));
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Article> getReferenceListModel() {
+    lock();
+    try {
+      return referenceListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public List<Article> getReferencesTo() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(referencesTo));
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Article> getReferencesToListModel() {
+    lock();
+    try {
+      return referencesToListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public List<Tag> getTags() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(tags));
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Tag> getTagListModel() {
+    lock();
+    try {
+      return tagListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getTitle() {
+    lock();
+    try {
+      return title;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getVolume() {
+    lock();
+    try {
+      return volume;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getYear() {
+    lock();
+    try {
+      return year;
+    } finally {
+      unlock();
+    }
+  }
+
+  public void merge(Article merged) {
+    lock();
+    try {
+      if (Objects.requireNonNull(merged) == this) {
+        throw new IllegalArgumentException("Attempted to merge article with itself.");
+      }
+      SnowballState state = getState();
+      if (merged.getState() != state) {
+        throw new IllegalArgumentException("Attempted to merge articles belonging to different "
+            + "states.");
+      }
+
+      for (Author au : merged.getAuthors()) {
+        if (!getAuthors().contains(au)) {
+          addAuthor(au);
+        }
+      }
+
+      for (Article art : state.getArticles()) {
+        if (art == this || art == merged) {
+          continue;
+        }
+        if (art.getReferences().contains(merged)) {
+          art.removeReference(merged);
+          if (!art.getReferences().contains(this)) {
+            art.addReference(this);
+          }
+        }
+      }
+
+      for (Article ref : merged.getReferences()) {
+        if (!getReferences().contains(ref) && ref != this) {
+          addReference(ref);
+        }
+      }
+
+      for (Tag tag : merged.getTags()) {
+        if (!getTags().contains(tag)) {
+          addTag(tag);
+        }
+      }
+      merged.remove();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void removeAuthor(Author author) {
+    lock();
+    try {
+      int idx = authors.indexOf(author);
+      if (idx < 0) {
+        throw new IllegalArgumentException("Attempted to remove non-existing author.");
+      }
+      authors.remove(author);
+      SwingUtilities.invokeLater(() -> authorsListModel.fireRemoved(idx));
       fireUpdated();
+    } finally {
+      unlock();
     }
   }
 
-  public synchronized void addReference(Article ref) {
-    if (Objects.requireNonNull(ref) == this) {
-      throw new IllegalArgumentException("Circular references not allowed.");
-    }
-    if (ref.getState() != getState()) {
-      throw new IllegalArgumentException("Article and reference belong to different states.");
-    }
-    if (!references.contains(ref)) {
-      if (ref.referencesTo.contains(this)) {
+  public void removeReference(Article ref) {
+    lock();
+    try {
+      int idx = references.indexOf(Objects.requireNonNull(ref));
+      if (idx < 0) {
+        throw new IllegalArgumentException("Attempted to remove non-existing reference.");
+      }
+      int idx2 = ref.referencesTo.indexOf(this);
+      if (idx < 0) {
         throw new IllegalStateException();
       }
-      references.add(ref);
-      ref.referencesTo.add(this);
-      Collections.sort(references);
-      Collections.sort(ref.referencesTo);
+      references.remove(idx);
+      ref.referencesTo.remove(idx2);
       SwingUtilities.invokeLater(() -> {
-        referenceListModel.fireAdded(ref);
-        ref.referencesToListModel.fireAdded(this);
+        referenceListModel.fireRemoved(idx);
+        ref.referencesToListModel.fireRemoved(idx2);
       });
       fireUpdated();
       ref.fireUpdated();
+    } finally {
+      unlock();
     }
   }
 
-  public synchronized void addTag(Tag tag) {
-    if (tag.getState() != getState()) {
-      throw new IllegalArgumentException("Article and tag belong to different states.");
-    }
-    if (!tags.contains(tag)) {
-      tags.add(tag);
-      Collections.sort(tags);
-      SwingUtilities.invokeLater(() -> tagListModel.fireAdded(tag));
-      fireUpdated();
-    }
-  }
-
-  public synchronized List<Author> getAuthors() {
-    return Collections.unmodifiableList(new ArrayList<>(authors));
-  }
-
-  public synchronized ListModel<Author> getAuthorsListModel() {
-    return authorsListModel;
-  }
-
-
-  public synchronized String getDoi() {
-    return doi;
-  }
-
-  public synchronized String getIssue() {
-    return issue;
-  }
-
-  public synchronized Journal getJournal() {
-    return journal;
-  }
-
-  public synchronized String getMonth() {
-    return month;
-  }
-
-  public synchronized String getPages() {
-    return pages;
-  }
-
-  public synchronized List<Article> getReferences() {
-    return Collections.unmodifiableList(new ArrayList<>(references));
-  }
-
-  public synchronized ListModel<Article> getReferenceListModel() {
-    return referenceListModel;
-  }
-
-  public synchronized List<Article> getReferencesTo() {
-    return Collections.unmodifiableList(new ArrayList<>(referencesTo));
-  }
-
-  public synchronized ListModel<Article> getReferencesToListModel() {
-    return referencesToListModel;
-  }
-
-  public synchronized List<Tag> getTags() {
-    return Collections.unmodifiableList(new ArrayList<>(tags));
-  }
-
-  public synchronized ListModel<Tag> getTagListModel() {
-    return tagListModel;
-  }
-
-  public synchronized String getTitle() {
-    return title;
-  }
-
-  public synchronized String getVolume() {
-    return volume;
-  }
-
-  public synchronized String getYear() {
-    return year;
-  }
-
-  public synchronized void merge(Article merged) {
-    if (Objects.requireNonNull(merged) == this) {
-      throw new IllegalArgumentException("Attempted to merge article with itself.");
-    }
-    SnowballState state = getState();
-    if (merged.getState() != state) {
-      throw new IllegalArgumentException("Attempted to merge articles belonging to different "
-          + "states.");
-    }
-
-    for (Author au : merged.getAuthors()) {
-      if (!getAuthors().contains(au)) {
-        addAuthor(au);
-      }
-    }
-
-    for (Article art : state.getArticles()) {
-      if (art == this || art == merged) {
-        continue;
-      }
-      if (art.getReferences().contains(merged)) {
-        art.removeReference(merged);
-        if (!art.getReferences().contains(this)) {
-          art.addReference(this);
+  @Override
+  public void remove() {
+    lock();
+    try {
+      for (Article art : getState().getArticles()) {
+        if (art.getReferences().contains(this)) {
+          art.removeReference(this);
         }
       }
-    }
-
-    for (Article ref : merged.getReferences()) {
-      if (!getReferences().contains(ref) && ref != this) {
-        addReference(ref);
+      for (Article art : references) {
+        removeReference(art);
       }
+      getState().removeMember(this);
+    } finally {
+      unlock();
     }
-
-    for (Tag tag : merged.getTags()) {
-      if (!getTags().contains(tag)) {
-        addTag(tag);
-      }
-    }
-    merged.remove();
   }
 
-  public synchronized void removeAuthor(Author author) {
-    int idx = authors.indexOf(author);
-    if (idx < 0) {
-      throw new IllegalArgumentException("Attempted to remove non-existing author.");
+  public void removeTag(Tag tag) {
+    lock();
+    try {
+      int idx = tags.indexOf(Objects.requireNonNull(tag));
+      if (idx < 0) {
+        throw new IllegalArgumentException("Attempted to remove non-existing tag.");
+      }
+      tags.remove(idx);
+      SwingUtilities.invokeLater(() -> tagListModel.fireRemoved(idx));
+      fireUpdated();
+    } finally {
+      unlock();
     }
-    authors.remove(author);
-    SwingUtilities.invokeLater(() -> authorsListModel.fireRemoved(idx));
-    fireUpdated();
   }
 
-  public synchronized void removeReference(Article ref) {
-    int idx = references.indexOf(Objects.requireNonNull(ref));
-    if (idx < 0) {
-      throw new IllegalArgumentException("Attempted to remove non-existing reference.");
+  public void setDoi(String doi) {
+    lock();
+    try {
+      this.doi = Objects.requireNonNullElse(doi, "");
+      fireUpdated();
+    } finally {
+      unlock();
     }
-    int idx2 = ref.referencesTo.indexOf(this);
-    if (idx < 0) {
-      throw new IllegalStateException();
+  }
+
+  public void setIssue(String issue) {
+    lock();
+    try {
+      this.issue = Objects.requireNonNullElse(issue, "");
+      fireUpdated();
+    } finally {
+      unlock();
     }
-    references.remove(idx);
-    ref.referencesTo.remove(idx2);
-    SwingUtilities.invokeLater(() -> {
-      referenceListModel.fireRemoved(idx);
-      ref.referencesToListModel.fireRemoved(idx2);
-    });
-    fireUpdated();
-    ref.fireUpdated();
+  }
+
+  public void setJournal(Journal journal) {
+    lock();
+    try {
+      this.journal = journal;
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setMonth(String month) {
+    lock();
+    try {
+      this.month = Objects.requireNonNullElse(month, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setPages(String pages) {
+    lock();
+    try {
+      this.pages = Objects.requireNonNullElse(pages, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setTitle(String title) {
+    lock();
+    try {
+      this.title = Objects.requireNonNullElse(title, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setVolume(String volume) {
+    lock();
+    try {
+      this.volume = Objects.requireNonNullElse(volume, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setYear(String year) {
+    lock();
+    try {
+      this.year = Objects.requireNonNullElse(year, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
   }
 
   @Override
-  public synchronized void remove() {
-    for (Article art : getState().getArticles()) {
-      if (art.getReferences().contains(this)) {
-        art.removeReference(this);
+  public int compareTo(SnowballStateMember other) {
+    lock();
+    try {
+      Article o = (Article)other;
+      if (getTitle() == null) {
+        if (o.getTitle() == null) {
+          return 0;
+        }
+        return -1;
       }
-    }
-    for (Article art : references) {
-      removeReference(art);
-    }
-    getState().removeMember(this);
-  }
-
-  public synchronized void removeTag(Tag tag) {
-    int idx = tags.indexOf(Objects.requireNonNull(tag));
-    if (idx < 0) {
-      throw new IllegalArgumentException("Attempted to remove non-existing tag.");
-    }
-    tags.remove(idx);
-    SwingUtilities.invokeLater(() -> tagListModel.fireRemoved(idx));
-    fireUpdated();
-  }
-
-  public synchronized void setDoi(String doi) {
-    this.doi = Objects.requireNonNullElse(doi, "");
-    fireUpdated();
-  }
-
-  public synchronized void setIssue(String issue) {
-    this.issue = Objects.requireNonNullElse(issue, "");
-    fireUpdated();
-  }
-
-  public synchronized void setJournal(Journal journal) {
-    this.journal = journal;
-    fireUpdated();
-  }
-
-  public synchronized void setMonth(String month) {
-    this.month = Objects.requireNonNullElse(month, "");
-    fireUpdated();
-  }
-
-  public synchronized void setPages(String pages) {
-    this.pages = Objects.requireNonNullElse(pages, "");
-    fireUpdated();
-  }
-
-  public synchronized void setTitle(String title) {
-    this.title = Objects.requireNonNullElse(title, "");
-    fireUpdated();
-  }
-
-  public synchronized void setVolume(String volume) {
-    this.volume = Objects.requireNonNullElse(volume, "");
-    fireUpdated();
-  }
-
-  public synchronized void setYear(String year) {
-    this.year = Objects.requireNonNullElse(year, "");
-    fireUpdated();
-  }
-
-  @Override
-  public synchronized int compareTo(SnowballStateMember other) {
-    Article o = (Article)other;
-    if (getTitle() == null) {
       if (o.getTitle() == null) {
-        return 0;
+        return 1;
       }
-      return -1;
+      return getTitle().compareToIgnoreCase(o.getTitle());
+    } finally {
+      unlock();
     }
-    if (o.getTitle() == null) {
-      return 1;
-    }
-    return getTitle().compareToIgnoreCase(o.getTitle());
   }
 
   @Override
-  public synchronized String toString() {
-    return getTitle();
+  public String toString() {
+    lock();
+    try {
+      return getTitle();
+    } finally {
+      unlock();
+    }
   }
 
   public static Article getByDoi(SnowballState state, String doi) {
@@ -365,31 +539,41 @@ public class Article extends SnowballStateMember {
     return null;
   }
 
-  synchronized SerializationProxy getSerializationProxy() {
-    return new SerializationProxy(this);
+  SerializationProxy getSerializationProxy() {
+    lock();
+    try {
+      return new SerializationProxy(this);
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized void restoreFromProxy(SerializationProxy proxy, List<Article> articles,
+  void restoreFromProxy(SerializationProxy proxy, List<Article> articles,
       List<Author> authors, List<Journal> journals, List<Tag> tags) {
-    setDoi(proxy.doi);
-    setIssue(proxy.issue);
-    setMonth(proxy.month);
-    setPages(proxy.pages);
-    setTitle(proxy.title);
-    setVolume(proxy.volume);
-    setYear(proxy.year);
-    setNotes(proxy.notes);
-    if (proxy.journal >= 0) {
-      setJournal(journals.get(proxy.journal));
-    }
-    for (int i : proxy.authors) {
-      addAuthor(authors.get(i));
-    }
-    for (int i : proxy.references) {
-      addReference(articles.get(i));
-    }
-    for (int i : proxy.tags) {
-      addTag(tags.get(i));
+    lock();
+    try {
+      setDoi(proxy.doi);
+      setIssue(proxy.issue);
+      setMonth(proxy.month);
+      setPages(proxy.pages);
+      setTitle(proxy.title);
+      setVolume(proxy.volume);
+      setYear(proxy.year);
+      setNotes(proxy.notes);
+      if (proxy.journal >= 0) {
+        setJournal(journals.get(proxy.journal));
+      }
+      for (int i : proxy.authors) {
+        addAuthor(authors.get(i));
+      }
+      for (int i : proxy.references) {
+        addReference(articles.get(i));
+      }
+      for (int i : proxy.tags) {
+        addTag(tags.get(i));
+      }
+    } finally {
+      unlock();
     }
   }
 

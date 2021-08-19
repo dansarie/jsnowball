@@ -12,72 +12,112 @@ public class Tag extends SnowballStateMember {
     super(state);
   }
 
-  public synchronized String getName() {
-    return name;
+  public String getName() {
+    lock();
+    try {
+      return name;
+    } finally {
+      unlock();
+    }
   }
 
-  public synchronized void merge(Tag merged) {
-    if (Objects.requireNonNull(merged) == this) {
-      throw new IllegalArgumentException("Attempted to merge tag with itself.");
-    }
-    if (merged.getState() != getState()) {
-      throw new IllegalArgumentException("Attempted to merge tags belonging to different "
-          + "states.");
-    }
-    for (Article art : getState().getArticles()) {
-      List<Tag> tags = art.getTags();
-      if (tags.contains(merged)) {
-        art.removeTag(merged);
-        if (tags.contains(this)) {
-          art.addTag(this);
+  public void merge(Tag merged) {
+    lock();
+    try {
+      if (Objects.requireNonNull(merged) == this) {
+        throw new IllegalArgumentException("Attempted to merge tag with itself.");
+      }
+      if (merged.getState() != getState()) {
+        throw new IllegalArgumentException("Attempted to merge tags belonging to different "
+            + "states.");
+      }
+      for (Article art : getState().getArticles()) {
+        List<Tag> tags = art.getTags();
+        if (tags.contains(merged)) {
+          art.removeTag(merged);
+          if (tags.contains(this)) {
+            art.addTag(this);
+          }
         }
       }
+      getState().removeMember(merged);
+    } finally {
+      unlock();
     }
-    getState().removeMember(merged);
   }
 
-  public synchronized void setName(String name) {
-    this.name = Objects.requireNonNullElse(name, "");
-    fireUpdated();
+  public void setName(String name) {
+    lock();
+    try {
+      this.name = Objects.requireNonNullElse(name, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
   }
 
   @Override
-  public synchronized int compareTo(SnowballStateMember other) {
-    Tag o = (Tag)other;
-    if (getName() == null) {
+  public int compareTo(SnowballStateMember other) {
+    lock();
+    try {
+      Tag o = (Tag)other;
+      if (getName() == null) {
+        if (o.getName() == null) {
+          return 0;
+        }
+        return -1;
+      }
       if (o.getName() == null) {
-        return 0;
+        return 1;
       }
-      return -1;
+      return getName().compareToIgnoreCase(o.getName());
+    } finally {
+      unlock();
     }
-    if (o.getName() == null) {
-      return 1;
-    }
-    return getName().compareToIgnoreCase(o.getName());
   }
 
   @Override
-  public synchronized void remove() {
-    for (Article art : getState().getArticles()) {
-      if (art.getTags().contains(this)) {
-        art.removeTag(this);
+  public void remove() {
+    lock();
+    try {
+      for (Article art : getState().getArticles()) {
+        if (art.getTags().contains(this)) {
+          art.removeTag(this);
+        }
       }
+      getState().removeMember(this);
+    } finally {
+      unlock();
     }
-    getState().removeMember(this);
   }
 
   @Override
-  public synchronized String toString() {
-    return name;
+  public String toString() {
+    lock();
+    try {
+      return name;
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized SerializationProxy getSerializationProxy() {
-    return new SerializationProxy(this);
+  SerializationProxy getSerializationProxy() {
+    lock();
+    try {
+      return new SerializationProxy(this);
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized void restoreFromProxy(SerializationProxy proxy) {
-    setName(proxy.name);
-    setNotes(proxy.notes);
+  void restoreFromProxy(SerializationProxy proxy) {
+    lock();
+    try {
+      setName(proxy.name);
+      setNotes(proxy.notes);
+    } finally {
+      unlock();
+    }
   }
 
   static class SerializationProxy {

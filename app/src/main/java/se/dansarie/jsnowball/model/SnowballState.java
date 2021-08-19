@@ -3,6 +3,7 @@ package se.dansarie.jsnowball.model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.List;
 
 import javax.swing.ListModel;
@@ -18,6 +19,7 @@ public class SnowballState {
   private List<Journal> journals = new ArrayList<>();
   private List<Tag> tags = new ArrayList<>();
   private boolean saved = true;
+  private ReentrantLock lock = new ReentrantLock();
 
   private SnowballListModel<Article> articleListModel = new SnowballListModel<>(articles);
   private SnowballListModel<Author> authorListModel = new SnowballListModel<>(authors);
@@ -28,197 +30,295 @@ public class SnowballState {
   }
 
   private SnowballState(SerializationProxy sp) {
-    ArrayList<Author> loadedAuthors = new ArrayList<>();
-    for (Author.SerializationProxy proxy : sp.authors) {
-      Author au = new Author(this);
-      au.restoreFromProxy(proxy);
-      loadedAuthors.add(au);
-    }
+    lock();
+    try {
+      ArrayList<Author> loadedAuthors = new ArrayList<>();
+      for (Author.SerializationProxy proxy : sp.authors) {
+        Author au = new Author(this);
+        au.restoreFromProxy(proxy);
+        loadedAuthors.add(au);
+      }
 
-    ArrayList<Journal> loadedJournals = new ArrayList<>();
-    for (Journal.SerializationProxy proxy : sp.journals) {
-      Journal jo = new Journal(this);
-      jo.restoreFromProxy(proxy);
-      loadedJournals.add(jo);
-    }
+      ArrayList<Journal> loadedJournals = new ArrayList<>();
+      for (Journal.SerializationProxy proxy : sp.journals) {
+        Journal jo = new Journal(this);
+        jo.restoreFromProxy(proxy);
+        loadedJournals.add(jo);
+      }
 
-    ArrayList<Tag> loadedTags = new ArrayList<>();
-    for (Tag.SerializationProxy proxy : sp.tags) {
-      Tag tag = new Tag(this);
-      tag.restoreFromProxy(proxy);
-      loadedTags.add(tag);
-    }
+      ArrayList<Tag> loadedTags = new ArrayList<>();
+      for (Tag.SerializationProxy proxy : sp.tags) {
+        Tag tag = new Tag(this);
+        tag.restoreFromProxy(proxy);
+        loadedTags.add(tag);
+      }
 
-    ArrayList<Article> loadedArticles = new ArrayList<>();
-    for (int i = 0; i < sp.articles.length; i++) {
-      Article ar = new Article(this);
-      loadedArticles.add(ar);
-    }
+      ArrayList<Article> loadedArticles = new ArrayList<>();
+      for (int i = 0; i < sp.articles.length; i++) {
+        Article ar = new Article(this);
+        loadedArticles.add(ar);
+      }
 
-    for (int i = 0; i < sp.articles.length; i++) {
-      loadedArticles.get(i).restoreFromProxy(sp.articles[i], loadedArticles, loadedAuthors,
-          loadedJournals, loadedTags);
+      for (int i = 0; i < sp.articles.length; i++) {
+        loadedArticles.get(i).restoreFromProxy(sp.articles[i], loadedArticles, loadedAuthors,
+            loadedJournals, loadedTags);
+      }
+      saved = true;
+    } finally {
+      unlock();
     }
-    saved = true;
   }
 
   public static SnowballState fromJson(String json) throws JSONException {
     return new SnowballState(new SnowballState.SerializationProxy(new JSONObject(json)));
   }
 
-  synchronized void fireUpdated(SnowballStateMember updated) {
-    Objects.requireNonNull(updated);
-    saved = false;
-    List<? extends SnowballStateMember> list = null;
-    SnowballListModel<? extends SnowballStateMember> listModel = null;
-    if (updated instanceof Article) {
-      list = articles;
-      listModel = articleListModel;
-    } else if (updated instanceof Author) {
-      list = authors;
-      listModel = authorListModel;
-    } else if (updated instanceof Journal) {
-      list = journals;
-      listModel = journalListModel;
-    } else if (updated instanceof Tag) {
-      list = tags;
-      listModel = tagListModel;
-    } else {
-      throw new IllegalStateException();
-    }
-    Collections.sort(list);
-    @SuppressWarnings("unchecked")
-    final SnowballListModel<SnowballStateMember> lm =
-        (SnowballListModel<SnowballStateMember>)listModel;
-    SwingUtilities.invokeLater(() -> lm.fireChanged(updated));
+  void lock() {
+    lock.lock();
   }
 
-  public synchronized boolean isSaved() {
-    return saved;
+  void unlock() {
+    lock.unlock();
   }
 
-  synchronized void removeMember(SnowballStateMember member) {
-    if (Objects.requireNonNull(member).getState() != this) {
-      throw new IllegalArgumentException("Attempted to remove member from wrong state.");
-    }
-
-    List<? extends SnowballStateMember> list = null;
-    SnowballListModel<? extends SnowballStateMember> listModel = null;
-    if (member instanceof Article) {
-      list = articles;
-      listModel = articleListModel;
-    } else if (member instanceof Author) {
-      list = authors;
-      listModel = authorListModel;
-    } else if (member instanceof Journal) {
-      list = journals;
-      listModel = journalListModel;
-    } else if (member instanceof Tag) {
-      list = tags;
-      listModel = tagListModel;
-    } else {
-      throw new IllegalStateException();
-    }
-    final int idx = list.indexOf(member);
-    list.remove(idx);
-    final SnowballListModel<? extends SnowballStateMember> lm = listModel;
-    SwingUtilities.invokeLater(() -> lm.fireRemoved(idx));
-  }
-
-  synchronized void addMember(SnowballStateMember member) {
-    if (member instanceof Article) {
-      addMember((Article)member, articles);
-    } else if (member instanceof Author) {
-      addMember((Author)member, authors);
-    } else  if (member instanceof Journal) {
-      addMember((Journal)member, journals);
-    } else  if (member instanceof Tag) {
-      addMember((Tag)member, tags);
-    } else {
-      throw new IllegalStateException();
-    }
-  }
-
-  synchronized <E extends SnowballStateMember> void addMember(E member, List<E> li) {
-    if (li.contains(Objects.requireNonNull(member))) {
-      throw new IllegalStateException();
-    }
-    if (member.getState() != this) {
-      throw new IllegalArgumentException("Attempted to add member belonging to other state.");
-    }
-    li.add(member);
-    fireUpdated(member);
-  }
-
-  synchronized public Author getAuthorFromStrings(String firstName, String lastName) {
-    for (Author a : authors) {
-      if (a.getFirstName().equalsIgnoreCase(firstName)
-          && a.getLastName().equalsIgnoreCase(lastName)) {
-        return a;
+  void fireUpdated(SnowballStateMember updated) {
+    lock();
+    try {
+      Objects.requireNonNull(updated);
+      saved = false;
+      List<? extends SnowballStateMember> list = null;
+      SnowballListModel<? extends SnowballStateMember> listModel = null;
+      if (updated instanceof Article) {
+        list = articles;
+        listModel = articleListModel;
+      } else if (updated instanceof Author) {
+        list = authors;
+        listModel = authorListModel;
+      } else if (updated instanceof Journal) {
+        list = journals;
+        listModel = journalListModel;
+      } else if (updated instanceof Tag) {
+        list = tags;
+        listModel = tagListModel;
+      } else {
+        throw new IllegalStateException();
       }
+      Collections.sort(list);
+      @SuppressWarnings("unchecked")
+      final SnowballListModel<SnowballStateMember> lm =
+          (SnowballListModel<SnowballStateMember>)listModel;
+      SwingUtilities.invokeLater(() -> lm.fireChanged(updated));
+    } finally {
+      unlock();
     }
-    Author a = new Author(this);
-    a.setFirstName(firstName);
-    a.setLastName(lastName);
-    return a;
   }
 
-  synchronized public Journal getJournalFromString(String name) {
-    for (Journal j : journals) {
-      if (j.getName().equals(name)) {
-        return j;
+  public boolean isSaved() {
+    lock();
+    try {
+      return saved;
+    } finally {
+      unlock();
+    }
+  }
+
+  void removeMember(SnowballStateMember member) {
+    lock();
+    try {
+      if (Objects.requireNonNull(member).getState() != this) {
+        throw new IllegalArgumentException("Attempted to remove member from wrong state.");
       }
-    }
-    Journal j = new Journal(this);
-    j.setName(name);
-    return j;
-  }
 
-  synchronized public Journal getJournalFromIssn(String issn) {
-    for (Journal j : journals) {
-      if (j.getIssn().equals(issn)) {
-        return j;
+      List<? extends SnowballStateMember> list = null;
+      SnowballListModel<? extends SnowballStateMember> listModel = null;
+      if (member instanceof Article) {
+        list = articles;
+        listModel = articleListModel;
+      } else if (member instanceof Author) {
+        list = authors;
+        listModel = authorListModel;
+      } else if (member instanceof Journal) {
+        list = journals;
+        listModel = journalListModel;
+      } else if (member instanceof Tag) {
+        list = tags;
+        listModel = tagListModel;
+      } else {
+        throw new IllegalStateException();
       }
+      final int idx = list.indexOf(member);
+      list.remove(idx);
+      final SnowballListModel<? extends SnowballStateMember> lm = listModel;
+      SwingUtilities.invokeLater(() -> lm.fireRemoved(idx));
+    } finally {
+      unlock();
     }
-    Journal j = new Journal(this);
-    j.setIssn(issn);
-    return j;
   }
 
-  synchronized public List<Article> getArticles() {
-    return Collections.unmodifiableList(new ArrayList<>(articles));
+  void addMember(SnowballStateMember member) {
+    lock();
+    try {
+      if (member instanceof Article) {
+        addMember((Article)member, articles);
+      } else if (member instanceof Author) {
+        addMember((Author)member, authors);
+      } else  if (member instanceof Journal) {
+        addMember((Journal)member, journals);
+      } else  if (member instanceof Tag) {
+        addMember((Tag)member, tags);
+      } else {
+        throw new IllegalStateException();
+      }
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public List<Author> getAuthors() {
-    return Collections.unmodifiableList(new ArrayList<>(authors));
+  <E extends SnowballStateMember> void addMember(E member, List<E> li) {
+    lock();
+    try {
+      if (li.contains(Objects.requireNonNull(member))) {
+        throw new IllegalStateException();
+      }
+      if (member.getState() != this) {
+        throw new IllegalArgumentException("Attempted to add member belonging to other state.");
+      }
+      li.add(member);
+      fireUpdated(member);
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public List<Journal> getJournals() {
-    return Collections.unmodifiableList(new ArrayList<>(journals));
+  public Author getAuthorFromStrings(String firstName, String lastName) {
+    lock();
+    try {
+      for (Author a : authors) {
+        if (a.getFirstName().equalsIgnoreCase(firstName)
+            && a.getLastName().equalsIgnoreCase(lastName)) {
+          return a;
+        }
+      }
+      Author a = new Author(this);
+      a.setFirstName(firstName);
+      a.setLastName(lastName);
+      return a;
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public List<Tag> getTags() {
-    return Collections.unmodifiableList(new ArrayList<>(tags));
+  public Journal getJournalFromString(String name) {
+    lock();
+    try {
+      for (Journal j : journals) {
+        if (j.getName().equals(name)) {
+          return j;
+        }
+      }
+      Journal j = new Journal(this);
+      j.setName(name);
+      return j;
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public ListModel<Article> getArticleListModel() {
-    return articleListModel;
+  public Journal getJournalFromIssn(String issn) {
+    lock();
+    try {
+      for (Journal j : journals) {
+        if (j.getIssn().equals(issn)) {
+          return j;
+        }
+      }
+      Journal j = new Journal(this);
+      j.setIssn(issn);
+      return j;
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public ListModel<Author> getAuthorListModel() {
-    return authorListModel;
+  public List<Article> getArticles() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(articles));
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public ListModel<Journal> getJournalListModel() {
-    return journalListModel;
+  public List<Author> getAuthors() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(authors));
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized public ListModel<Tag> getTagListModel() {
-    return tagListModel;
+  public List<Journal> getJournals() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(journals));
+    } finally {
+      unlock();
+    }
+  }
+
+  public List<Tag> getTags() {
+    lock();
+    try {
+      return Collections.unmodifiableList(new ArrayList<>(tags));
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Article> getArticleListModel() {
+    lock();
+    try {
+      return articleListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Author> getAuthorListModel() {
+    lock();
+    try {
+      return authorListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Journal> getJournalListModel() {
+    lock();
+    try {
+      return journalListModel;
+    } finally {
+      unlock();
+    }
+  }
+
+  public ListModel<Tag> getTagListModel() {
+    lock();
+    try {
+      return tagListModel;
+    } finally {
+      unlock();
+    }
   }
 
   public SerializationProxy getSerializationProxy() {
-    return new SerializationProxy(this);
+    lock();
+    try {
+      return new SerializationProxy(this);
+    } finally {
+      unlock();
+    }
   }
 
   public static class SerializationProxy {

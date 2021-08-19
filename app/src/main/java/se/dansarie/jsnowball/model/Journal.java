@@ -12,68 +12,108 @@ public class Journal extends SnowballStateMember {
     super(state);
   }
 
-  public synchronized String getIssn() {
-    return issn;
+  public String getIssn() {
+    lock();
+    try {
+      return issn;
+    } finally {
+      unlock();
+    }
   }
 
   public String getName() {
-    return name;
+    lock();
+    try {
+      return name;
+    } finally {
+      unlock();
+    }
   }
 
-  public synchronized void merge(Journal merged) {
-    if (Objects.requireNonNull(merged) == this) {
-      throw new IllegalArgumentException("Attempted to merge author with itself.");
-    }
-    if (merged.getState() != getState()) {
-      throw new IllegalArgumentException("Attempted to merge authors belonging to different "
-          + "states.");
-    }
-    for (Article art : getState().getArticles()) {
-      if (art.getJournal() == merged) {
-        art.setJournal(this);
+  public void merge(Journal merged) {
+    lock();
+    try {
+      if (Objects.requireNonNull(merged) == this) {
+        throw new IllegalArgumentException("Attempted to merge author with itself.");
       }
+      if (merged.getState() != getState()) {
+        throw new IllegalArgumentException("Attempted to merge authors belonging to different "
+            + "states.");
+      }
+      for (Article art : getState().getArticles()) {
+        if (art.getJournal() == merged) {
+          art.setJournal(this);
+        }
+      }
+      getState().removeMember(merged);
+    } finally {
+      unlock();
     }
-    getState().removeMember(merged);
   }
 
-  public synchronized void setName(String name) {
-    this.name = Objects.requireNonNullElse(name, "");
-    fireUpdated();
+  public void setName(String name) {
+    lock();
+    try {
+      this.name = Objects.requireNonNullElse(name, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
   }
 
-  public synchronized void setIssn(String issn) {
-    this.issn = Objects.requireNonNullElse(issn, "");
-    fireUpdated();
+  public void setIssn(String issn) {
+    lock();
+    try {
+      this.issn = Objects.requireNonNullElse(issn, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
   }
 
   @Override
-  public synchronized int compareTo(SnowballStateMember other) {
-    Journal o = (Journal)other;
-    if (getName() == null) {
+  public int compareTo(SnowballStateMember other) {
+    lock();
+    try {
+      Journal o = (Journal)other;
+      if (getName() == null) {
+        if (o.getName() == null) {
+          return 0;
+        }
+        return -1;
+      }
       if (o.getName() == null) {
-        return 0;
+        return 1;
       }
-      return -1;
+      return getName().compareToIgnoreCase(o.getName());
+    } finally {
+      unlock();
     }
-    if (o.getName() == null) {
-      return 1;
-    }
-    return getName().compareToIgnoreCase(o.getName());
   }
 
   @Override
-  public synchronized void remove() {
-    for (Article art : getState().getArticles()) {
-      if (art.getJournal() == this) {
-        art.setJournal(null);
+  public void remove() {
+    lock();
+    try {
+      for (Article art : getState().getArticles()) {
+        if (art.getJournal() == this) {
+          art.setJournal(null);
+        }
       }
+      getState().removeMember(this);
+    } finally {
+      unlock();
     }
-    getState().removeMember(this);
   }
 
   @Override
-  public synchronized String toString() {
-    return getName();
+  public String toString() {
+    lock();
+    try {
+      return getName();
+    } finally {
+      unlock();
+    }
   }
 
   public static Journal getByIssn(SnowballState state, String issn) {
@@ -94,14 +134,24 @@ public class Journal extends SnowballStateMember {
     return null;
   }
 
-  synchronized SerializationProxy getSerializationProxy() {
-    return new SerializationProxy(this);
+  SerializationProxy getSerializationProxy() {
+    lock();
+    try {
+      return new SerializationProxy(this);
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized void restoreFromProxy(SerializationProxy proxy) {
-    setIssn(proxy.issn);
-    setName(proxy.name);
-    setNotes(proxy.notes);
+  void restoreFromProxy(SerializationProxy proxy) {
+    lock();
+    try {
+      setIssn(proxy.issn);
+      setName(proxy.name);
+      setNotes(proxy.notes);
+    } finally {
+      unlock();
+    }
   }
 
   static class SerializationProxy {

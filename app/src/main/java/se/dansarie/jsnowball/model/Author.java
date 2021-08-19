@@ -20,118 +20,188 @@ public class Author extends SnowballStateMember {
 
   public Author(SnowballState state, CrossRef.Author r) {
     super(state);
-    setFirstName(r.firstName);
-    setLastName(r.lastName);
-    setOrcId(r.orcid);
-  }
-
-  public synchronized List<Article> getArticles() {
-    ArrayList<Article> articles = new ArrayList<>();
-    for (Article art : getState().getArticles()) {
-      if (art.getAuthors().contains(this)) {
-        articles.add(art);
-      }
+    lock();
+    try {
+      setFirstName(r.firstName);
+      setLastName(r.lastName);
+      setOrcId(r.orcid);
+    } finally {
+      unlock();
     }
-    return articles;
   }
 
-  public synchronized String getFirstName() {
-    return firstname;
-  }
-
-  public synchronized String getLastName() {
-    return lastname;
-  }
-
-  public synchronized String getOrgName() {
-    return orgname;
-  }
-
-  public synchronized String getOrcId() {
-    return orcid;
-  }
-
-  public synchronized void merge(Author merged) {
-    if (Objects.requireNonNull(merged) == this) {
-      throw new IllegalArgumentException("Attempted to merge author with itself.");
-    }
-    if (merged.getState() != getState()) {
-      throw new IllegalArgumentException("Attempted to merge authors belonging to different "
-          + "states.");
-    }
-    for (Article art : getState().getArticles()) {
-      List<Author> authors = art.getAuthors();
-      if (authors.contains(merged)) {
-        art.removeAuthor(merged);
-        if (!authors.contains(this)) {
-          art.addAuthor(this);
+  public List<Article> getArticles() {
+    lock();
+    try {
+      ArrayList<Article> articles = new ArrayList<>();
+      for (Article art : getState().getArticles()) {
+        if (art.getAuthors().contains(this)) {
+          articles.add(art);
         }
       }
+      return articles;
+    } finally {
+      unlock();
     }
-    merged.remove();
   }
 
-  @Override
-  public synchronized void remove() {
-    for (Article art : getState().getArticles()) {
-      if (art.getAuthors().contains(this)) {
-        art.removeAuthor(this);
+  public String getFirstName() {
+    lock();
+    try {
+      return firstname;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getLastName() {
+    lock();
+    try {
+      return lastname;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getOrgName() {
+    lock();
+    try {
+      return orgname;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getOrcId() {
+    lock();
+    try {
+      return orcid;
+    } finally {
+      unlock();
+    }
+  }
+
+  public void merge(Author merged) {
+    lock();
+    try {
+      if (Objects.requireNonNull(merged) == this) {
+        throw new IllegalArgumentException("Attempted to merge author with itself.");
       }
+      if (merged.getState() != getState()) {
+        throw new IllegalArgumentException("Attempted to merge authors belonging to different "
+            + "states.");
+      }
+      for (Article art : getState().getArticles()) {
+        List<Author> authors = art.getAuthors();
+        if (authors.contains(merged)) {
+          art.removeAuthor(merged);
+          if (!authors.contains(this)) {
+            art.addAuthor(this);
+          }
+        }
+      }
+      merged.remove();
+    } finally {
+      unlock();
     }
-    getState().removeMember(this);
-  }
-
-  public synchronized void setFirstName(String name) {
-    firstname = Objects.requireNonNullElse(name, "");
-    fireUpdated();
-  }
-
-  public synchronized void setLastName(String name) {
-    lastname = Objects.requireNonNullElse(name, "");
-    fireUpdated();
-  }
-
-  public synchronized void setOrgName(String name) {
-    orgname = Objects.requireNonNullElse(name, "");
-    fireUpdated();
-  }
-
-  public synchronized void setOrcId(String id) {
-    orcid = Objects.requireNonNullElse(id, "");
-    fireUpdated();
   }
 
   @Override
-  public synchronized int compareTo(SnowballStateMember other) {
-    Author o = (Author)other;
-    if (getLastName() == null) {
+  public void remove() {
+    lock();
+    try {
+      for (Article art : getState().getArticles()) {
+        if (art.getAuthors().contains(this)) {
+          art.removeAuthor(this);
+        }
+      }
+      getState().removeMember(this);
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setFirstName(String name) {
+    lock();
+    try {
+      firstname = Objects.requireNonNullElse(name, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setLastName(String name) {
+    lock();
+    try {
+      lastname = Objects.requireNonNullElse(name, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setOrgName(String name) {
+    lock();
+    try {
+      orgname = Objects.requireNonNullElse(name, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setOrcId(String id) {
+    lock();
+    try {
+      orcid = Objects.requireNonNullElse(id, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  @Override
+  public int compareTo(SnowballStateMember other) {
+    lock();
+    try {
+      Author o = (Author)other;
+      if (getLastName() == null) {
+        if (o.getLastName() == null) {
+          return 0;
+        }
+        return -1;
+      }
       if (o.getLastName() == null) {
-        return 0;
+        return 1;
       }
-      return -1;
-    }
-    if (o.getLastName() == null) {
-      return 1;
-    }
-    int ret = getLastName().compareToIgnoreCase(o.getLastName());
-    if (ret != 0) {
-      return ret;
-    }
-    if (getFirstName() == null) {
+      int ret = getLastName().compareToIgnoreCase(o.getLastName());
+      if (ret != 0) {
+        return ret;
+      }
+      if (getFirstName() == null) {
+        if (o.getFirstName() == null) {
+          return 0;
+        }
+        return -1;
+      }
       if (o.getFirstName() == null) {
-        return 0;
+        return 1;
       }
-      return -1;
+      return getFirstName().compareToIgnoreCase(o.getFirstName());
+    } finally {
+      unlock();
     }
-    if (o.getFirstName() == null) {
-      return 1;
-    }
-    return getFirstName().compareToIgnoreCase(o.getFirstName());
   }
 
   @Override
-  public synchronized String toString() {
-    return getLastName() + ", " + getFirstName();
+  public String toString() {
+    lock();
+    try {
+      return getLastName() + ", " + getFirstName();
+    } finally {
+      unlock();
+    }
   }
 
   public static Author getByOrcid(SnowballState state, String orcid) {
@@ -152,16 +222,26 @@ public class Author extends SnowballStateMember {
     return null;
   }
 
-  synchronized SerializationProxy getSerializationProxy() {
-    return new SerializationProxy(this);
+  SerializationProxy getSerializationProxy() {
+    lock();
+    try {
+      return new SerializationProxy(this);
+    } finally {
+      unlock();
+    }
   }
 
-  synchronized void restoreFromProxy(SerializationProxy proxy) {
-    setFirstName(proxy.firstname);
-    setLastName(proxy.lastname);
-    setNotes(proxy.notes);
-    setOrcId(proxy.orcid);
-    setOrgName(proxy.orgname);
+  void restoreFromProxy(SerializationProxy proxy) {
+    lock();
+    try {
+      setFirstName(proxy.firstname);
+      setLastName(proxy.lastname);
+      setNotes(proxy.notes);
+      setOrcId(proxy.orcid);
+      setOrgName(proxy.orgname);
+    } finally {
+      unlock();
+    }
   }
 
   static class SerializationProxy {
@@ -183,7 +263,7 @@ public class Author extends SnowballStateMember {
       firstname = au.firstname;
       lastname = au.lastname;
       notes = au.getNotes();
-      orcid = au.orgname;
+      orcid = au.orcid;
       orgname = au.orgname;
     }
 
