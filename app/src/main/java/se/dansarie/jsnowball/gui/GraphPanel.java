@@ -35,7 +35,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   private Map<E, Node<E>> memberMap = new HashMap<>();
   private Node<E> draggedNode = null;
   private Set<GraphListener<E>> listeners = new HashSet<>();
-  private float temp = 10;
+  private float temp = 20;
   private Timer timer = new Timer(50, ev -> redrawGraphs());
 
   public GraphPanel() {
@@ -79,7 +79,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     nodeMap.clear();
     memberMap.clear();
     draggedNode = null;
-    temp = 10;
+    temp = 20;
     getListModel().addListDataListener(this);
   }
 
@@ -217,17 +217,17 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       minx = Math.min(x, minx);
       miny = Math.min(y, miny);
       if (node != draggedNode) {
-        node.setX((int)x);
-        node.setY((int)y);
+        node.setX(x);
+        node.setY(y);
       }
     }
     if (minx < 0 || miny < 0) {
       for (Node <E> node : graph) {
         if (minx < 0) {
-          node.setX((int)(node.getX() - minx));
+          node.setX(node.getX() - minx);
         }
         if (miny < 0) {
-          node.setY((int)(node.getY() - miny));
+          node.setY(node.getY() - miny);
         }
       }
     }
@@ -248,16 +248,16 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     for (List<Node<E>> graph : graphs) {
       drawGraph(graph, 60);
     }
-    if (temp > 2) {
-      temp *= 0.97;
+    if (temp > 0.2) {
+      temp *= 0.99;
     }
 
     for (List<Node<E>> graph : graphs) {
       Rectangle bounds = getGraphBounds(graph);
       for (Node<E> node : graph) {
         if (node != draggedNode) {
-          node.setX((int)(node.getX() - bounds.x));
-          node.setY((int)(node.getY() - bounds.y));
+          node.setX(node.getX() - bounds.x);
+          node.setY(node.getY() - bounds.y);
         }
       }
     }
@@ -277,8 +277,8 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
         }
         for (Node<E> node : graph) {
           if (node != draggedNode) {
-            node.setX((int)(node.getX() + dx));
-            node.setY((int)(node.getY() + dy));
+            node.setX(node.getX() + dx);
+            node.setY(node.getY() + dy);
           }
         }
         graphBounds = getGraphBounds(graph);
@@ -367,6 +367,8 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     private int graphnum = -1;
     float force_x = 0;
     float force_y = 0;
+    float remain_x = 0;
+    float remain_y = 0;
 
     private Node(E member) {
       this.member = Objects.requireNonNull(member);
@@ -424,6 +426,18 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
 
     private void setY(int y) {
       shape.y = y;
+    }
+
+    private void setX(float x) {
+      x -= remain_x;
+      shape.x = (int)x;
+      remain_x = shape.x - x;
+    }
+
+    private void setY(float y) {
+      y -= remain_y;
+      shape.y = (int)y;
+      remain_y = shape.y - y;
     }
 
     private void setGraphnum(int num) {
