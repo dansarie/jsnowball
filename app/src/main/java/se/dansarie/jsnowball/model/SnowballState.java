@@ -98,6 +98,11 @@ public class SnowballState {
         list = journals;
         listModel = journalListModel;
       } else if (updated instanceof Tag) {
+        for (Article art : getArticles()) {
+          if (art.getTags().contains(updated)) {
+            art.sortTags();
+          }
+        }
         list = tags;
         listModel = tagListModel;
       } else {
@@ -117,6 +122,42 @@ public class SnowballState {
     lock();
     try {
       return saved;
+    } finally {
+      unlock();
+    }
+  }
+
+  void moveDown(Tag tag) {
+    lock();
+    try {
+      if (Objects.requireNonNull(tag).getState() != this) {
+        throw new IllegalArgumentException("Attempted to move tag from wrong state.");
+      }
+      int idx = tags.indexOf(tag);
+      if (idx == tags.size() - 1) {
+        return;
+      }
+      Collections.swap(tags, idx, idx + 1);
+      fireUpdated(tags.get(idx));
+      fireUpdated(tags.get(idx + 1));
+    } finally {
+      unlock();
+    }
+  }
+
+  void moveUp(Tag tag) {
+    lock();
+    try {
+      if (Objects.requireNonNull(tag).getState() != this) {
+        throw new IllegalArgumentException("Attempted to move tag from wrong state.");
+      }
+      int idx = tags.indexOf(tag);
+      if (idx == 0) {
+        return;
+      }
+      Collections.swap(tags, idx, idx - 1);
+      fireUpdated(tags.get(idx));
+      fireUpdated(tags.get(idx - 1));
     } finally {
       unlock();
     }
@@ -315,6 +356,7 @@ public class SnowballState {
   public SerializationProxy getSerializationProxy() {
     lock();
     try {
+      saved = true;
       return new SerializationProxy(this);
     } finally {
       unlock();

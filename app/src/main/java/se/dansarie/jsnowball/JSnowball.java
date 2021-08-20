@@ -1,5 +1,6 @@
 package se.dansarie.jsnowball;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
@@ -104,6 +105,15 @@ public class JSnowball {
     public List<Article> getEdges(Article member) {
       return member.getReferences();
     }
+
+    @Override
+    public Color getColor(Article member) {
+      List<Tag> tags = member.getTags();
+      if (tags.size() == 0) {
+        return Color.BLACK;
+      }
+      return new Color(tags.get(0).getColor());
+    }
   };
 
   private GraphPanel<Author> authorGraph = new GraphPanel<>() {
@@ -129,6 +139,11 @@ public class JSnowball {
         }
       }
       return edgeAuthors;
+    }
+
+    @Override
+    public Color getColor(Author member) {
+      return Color.BLACK;
     }
   };
 

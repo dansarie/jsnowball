@@ -1,14 +1,19 @@
 package se.dansarie.jsnowball.gui;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
+import java.util.function.Consumer;
+
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JColorChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.text.JTextComponent;
-
-import java.util.ArrayList;
-import java.util.function.Consumer;
 
 import se.dansarie.jsnowball.model.Tag;
 
@@ -18,12 +23,51 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
   private JTextArea notes = new JTextArea();
   private JButton deleteButton = new JButton("Remove tag");
   private JButton mergeButton = new JButton("Merge tags");
+  private JButton colorButton;
+
+  private AbstractAction moveUpAction = new AbstractAction("Move up") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      getItem().moveUp();
+    }
+  };
+
+  private AbstractAction moveDownAction = new AbstractAction("Move down") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      getItem().moveDown();
+    }
+  };
+
+  private JButton upButton = new JButton(moveUpAction);
+  private JButton downButton = new JButton(moveDownAction);
+
+  private AbstractAction selectColorAction = new AbstractAction() {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      Color col = JColorChooser.showDialog(TagPanel.this, "Select tag color",
+          getItem() == null ? Color.black : new Color(getItem().getColor()));
+      if (col != null) {
+        getItem().setColor(col.getRed() << 16 | col.getGreen() << 8 | col.getBlue());
+        colorButton.setBackground(col);
+      }
+    }
+  };
 
   public TagPanel() {
+    colorButton = new JButton(selectColorAction);
+    colorButton.setBackground(Color.BLACK);
+    Dimension dim = new Dimension(40, 40);
+    colorButton.setPreferredSize(dim);
+
     addComponent("Name", name);
     addComponent("Notes", new JScrollPane(notes));
+    addComponent("Color", colorButton);
+    addComponent("", upButton);
+    addComponent("", downButton);
     addComponent("", deleteButton);
     addComponent("", mergeButton);
+
     disableComponents();
 
     deleteButton.addActionListener(ev -> {
@@ -59,10 +103,12 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
       disableComponents();
       name.setText("");
       notes.setText("");
+      colorButton.setBackground(Color.BLACK);
       return;
     }
     name.setText(ta.getName());
     notes.setText(ta.getNotes());
+    colorButton.setBackground(new Color(ta.getColor()));
     enableComponents();
   }
 

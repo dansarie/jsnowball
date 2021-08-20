@@ -491,6 +491,16 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  void sortTags() {
+    lock();
+    try {
+      Collections.sort(tags);
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
   @Override
   public int compareTo(SnowballStateMember other) {
     lock();

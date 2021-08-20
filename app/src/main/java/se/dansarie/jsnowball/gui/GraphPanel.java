@@ -1,5 +1,6 @@
 package se.dansarie.jsnowball.gui;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -83,6 +84,8 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     getListModel().addListDataListener(this);
   }
 
+  protected abstract Color getColor(E member);
+
   protected abstract ListModel<E> getListModel();
 
   protected abstract List<E> getEdges(E member);
@@ -146,14 +149,19 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     for (Node<E> no : nodeMap.values()) {
-      Shape sh = no.getShape();
-      g2.fill(sh);
-      int x1 = (int)sh.getBounds().getCenterX();
-      int y1 = (int)sh.getBounds().getCenterY();
+      Rectangle bounds1 = no.getShape().getBounds();
+      g2.setColor(Color.BLACK);
+      int x1 = (int)bounds1.getCenterX();
+      int y1 = (int)bounds1.getCenterY();
       for (Node<E> edge : no.getEdges()) {
-        Rectangle bounds = edge.getShape().getBounds();
-        g2.drawLine(x1, y1, (int)bounds.getCenterX(), (int)bounds.getCenterY());
+        Rectangle bounds2 = edge.getShape().getBounds();
+        g2.drawLine(x1, y1, (int)bounds2.getCenterX(), (int)bounds2.getCenterY());
       }
+    }
+    for (Node<E> no : nodeMap.values()) {
+      Shape sh = no.getShape();
+      g2.setColor(getColor(no.getMember()));
+      g2.fill(sh);
     }
   }
 

@@ -1,6 +1,7 @@
 package se.dansarie.jsnowball.gui;
 
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
@@ -8,8 +9,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.text.JTextComponent;
-
-import java.util.function.Consumer;
 
 import se.dansarie.jsnowball.model.Journal;
 

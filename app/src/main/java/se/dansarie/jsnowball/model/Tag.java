@@ -7,9 +7,19 @@ import org.json.JSONObject;
 
 public class Tag extends SnowballStateMember {
   private String name = "";
+  private int color = 0;
 
   public Tag(SnowballState state) {
     super(state);
+  }
+
+  public int getColor() {
+    lock();
+    try {
+      return color;
+    } finally {
+      unlock();
+    }
   }
 
   public String getName() {
@@ -46,6 +56,37 @@ public class Tag extends SnowballStateMember {
     }
   }
 
+  public void moveDown() {
+    lock();
+    try {
+      getState().moveDown(this);
+    } finally {
+      unlock();
+    }
+  }
+
+  public void moveUp() {
+    lock();
+    try {
+      getState().moveUp(this);
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setColor(int color) {
+    lock();
+    try {
+      if (color < 0 || color >= (1 << 24)) {
+        throw new IllegalArgumentException();
+      }
+      this.color = color;
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
   public void setName(String name) {
     lock();
     try {
@@ -58,19 +99,14 @@ public class Tag extends SnowballStateMember {
 
   @Override
   public int compareTo(SnowballStateMember other) {
+    if (getState() != other.getState()) {
+      throw new IllegalArgumentException("Attempted to compare tags belonging to different "
+          + "states.");
+    }
     lock();
     try {
-      Tag o = (Tag)other;
-      if (getName() == null) {
-        if (o.getName() == null) {
-          return 0;
-        }
-        return -1;
-      }
-      if (o.getName() == null) {
-        return 1;
-      }
-      return getName().compareToIgnoreCase(o.getName());
+      List<Tag> tags = getState().getTags();
+      return tags.indexOf(this) - tags.indexOf(other);
     } finally {
       unlock();
     }
@@ -113,6 +149,7 @@ public class Tag extends SnowballStateMember {
   void restoreFromProxy(SerializationProxy proxy) {
     lock();
     try {
+      setColor(proxy.color);
       setName(proxy.name);
       setNotes(proxy.notes);
     } finally {
@@ -123,13 +160,16 @@ public class Tag extends SnowballStateMember {
   static class SerializationProxy {
     private final String name;
     private final String notes;
+    private final int color;
 
     SerializationProxy(JSONObject json) {
       name = json.getString("name");
       notes = json.getString("notes");
+      color = json.getInt("color");
     }
 
     private SerializationProxy(Tag ta) {
+      color = ta.color;
       name = ta.name;
       notes = ta.getNotes();
     }
@@ -138,6 +178,7 @@ public class Tag extends SnowballStateMember {
       JSONObject json = new JSONObject();
       json.put("name", name);
       json.put("notes", notes);
+      json.put("color", color);
       return json;
     }
   }
