@@ -317,6 +317,17 @@ public class SnowballState {
     }
   }
 
+  public List<Article> getStartSet() {
+    lock();
+    try {
+      ArrayList<Article> startSet = new ArrayList<>(articles);
+      startSet.removeIf(a -> !a.inStartSet());
+      return Collections.unmodifiableList(startSet);
+    } finally {
+      unlock();
+    }
+  }
+
   public ListModel<Article> getArticleListModel() {
     lock();
     try {

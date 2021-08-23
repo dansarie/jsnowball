@@ -1,7 +1,11 @@
 package se.dansarie.jsnowball.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
 
@@ -19,6 +23,8 @@ public class Article extends SnowballStateMember {
   private Journal journal = null;
   private String month = "";
   private String pages = "";
+  private boolean startSet = false;
+  private ArticleStatus status = ArticleStatus.UNDECIDED;
   private String title = "";
   private String volume = "";
   private String year = "";
@@ -148,6 +154,49 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  public int distanceTo(Article... articles) {
+    lock();
+    try {
+      List<Article> destinations = Arrays.asList(articles);
+      if (destinations.contains(this)) {
+        return 0;
+      }
+
+      List<Article> all = getState().getArticles();
+      Map<Article, Integer> dist = new HashMap<>();
+      for (Article a : all) {
+        dist.put(a, -1);
+      }
+      for (Article a : destinations) {
+        dist.put(a, 0);
+      }
+
+      boolean run = true;
+      for (int distance = 0; run; distance++) {
+        run = false;
+        for (Article a : all) {
+          if (dist.get(a) != distance) {
+            continue;
+          }
+          HashSet<Article> neighbors = new HashSet<>(a.getReferences());
+          neighbors.addAll(a.getReferencesTo());
+          for (Article neighbor : neighbors) {
+            if (neighbor == this) {
+              return distance + 1;
+            }
+            if (dist.get(neighbor) < 0) {
+              dist.put(neighbor, distance + 1);
+              run = true;
+            }
+          }
+        }
+      }
+      return -1;
+    } finally {
+      unlock();
+    }
+  }
+
   public List<Author> getAuthors() {
     lock();
     try {
@@ -197,6 +246,15 @@ public class Article extends SnowballStateMember {
     lock();
     try {
       return month;
+    } finally {
+      unlock();
+    }
+  }
+
+  public ArticleStatus getStatus() {
+    lock();
+    try {
+      return status;
     } finally {
       unlock();
     }
@@ -287,6 +345,15 @@ public class Article extends SnowballStateMember {
     lock();
     try {
       return year;
+    } finally {
+      unlock();
+    }
+  }
+
+  public boolean inStartSet() {
+    lock();
+    try {
+      return startSet;
     } finally {
       unlock();
     }
@@ -461,6 +528,26 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  public void setStatus(ArticleStatus status) {
+    lock();
+    try {
+      this.status = Objects.requireNonNull(status);
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setStartSet(boolean inStartSet) {
+    lock();
+    try {
+      startSet = inStartSet;
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
   public void setTitle(String title) {
     lock();
     try {
@@ -566,6 +653,8 @@ public class Article extends SnowballStateMember {
       setIssue(proxy.issue);
       setMonth(proxy.month);
       setPages(proxy.pages);
+      setStartSet(proxy.startSet);
+      setStatus(ArticleStatus.valueOf(proxy.status));
       setTitle(proxy.title);
       setVolume(proxy.volume);
       setYear(proxy.year);
@@ -587,12 +676,18 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  public enum ArticleStatus {
+    INCLUDED, EXCLUDED, UNDECIDED
+  }
+
   static class SerializationProxy {
     private final String doi;
     private final String issue;
     private final String month;
     private final String notes;
     private final String pages;
+    private final boolean startSet;
+    private final String status;
     private final String title;
     private final String volume;
     private final String year;
@@ -608,6 +703,8 @@ public class Article extends SnowballStateMember {
       month = json.getString("month");
       notes = json.getString("notes");
       pages = json.getString("pages");
+      startSet = json.optBoolean("startset", false);
+      status = json.getString("status");
       title = json.getString("title");
       volume = json.getString("volume");
       year = json.getString("year");
@@ -637,6 +734,8 @@ public class Article extends SnowballStateMember {
       month = art.month;
       notes = art.getNotes();
       pages = art.pages;
+      startSet = art.startSet;
+      status = art.status.toString();
       title = art.title;
       volume = art.volume;
       year = art.year;
@@ -675,6 +774,8 @@ public class Article extends SnowballStateMember {
       json.put("month", month);
       json.put("notes", notes);
       json.put("pages", pages);
+      json.put("startset", startSet);
+      json.put("status", status.toString());
       json.put("title", title);
       json.put("volume", volume);
       json.put("year", year);

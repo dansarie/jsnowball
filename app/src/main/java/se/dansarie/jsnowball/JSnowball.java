@@ -37,6 +37,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
@@ -310,10 +311,28 @@ public class JSnowball {
     }
 
     @Override
+    public Class<?> getColumnClass(int col) {
+      switch (col) {
+        case 0: return String.class;
+        case 1: return Integer.class;
+        case 2: return Integer.class;
+        case 3: return String.class;
+        default: throw new IllegalArgumentException();
+      }
+    }
+
+    @Override
+    public int getColumnCount() {
+      return 4;
+    }
+
+    @Override
     public String getColumnName(int col) {
       switch (col) {
         case 0: return "Article";
         case 1: return "References";
+        case 2: return "Distance from start set";
+        case 3: return "Status";
         default: throw new IllegalArgumentException();
       }
     }
@@ -324,6 +343,8 @@ public class JSnowball {
       switch (col) {
         case 0: return art.toString();
         case 1: return Integer.valueOf(art.getReferencesTo().size());
+        case 2: return art.distanceTo(state.getStartSet().toArray(new Article[0]));
+        case 3: return art.getStatus().toString();
       }
       throw new IllegalArgumentException();
     }
@@ -724,6 +745,24 @@ public class JSnowball {
     authorTable.setAutoCreateRowSorter(true);
     journalTable.setAutoCreateRowSorter(true);
     tagTable.setAutoCreateRowSorter(true);
+    ListSelectionModel articleSm = articleTable.getSelectionModel();
+    articleSm.addListSelectionListener(ev -> {
+      if (articleSm.getSelectedItemsCount() <= 0) {
+        return;
+      }
+      int idx = articleSm.getSelectedIndices()[0];
+      idx = articleTable.getRowSorter().convertRowIndexToModel(idx);
+      articleList.setSelectedValue(articleTableModel.getValue(idx), true);
+    });
+    ListSelectionModel authorSm = authorTable.getSelectionModel();
+    authorSm.addListSelectionListener(ev -> {
+      if (authorSm.getSelectedItemsCount() <= 0) {
+        return;
+      }
+      int idx = authorSm.getSelectedIndices()[0];
+      idx = authorTable.getRowSorter().convertRowIndexToModel(idx);
+      authorList.setSelectedValue(authorTableModel.getValue(idx), true);
+    });
     articleGraph.addGraphListener(articleGraphSelectionListener);
     authorGraph.addGraphListener(authorGraphSelectionListener);
 
@@ -906,6 +945,10 @@ public class JSnowball {
         w.removeListDataListener(this);
       }
       watched.clear();
+    }
+
+    public E getValue(int row) {
+      return listModel.getElementAt(row);
     }
 
     @Override

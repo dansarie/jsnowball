@@ -13,14 +13,17 @@ import java.util.function.Supplier;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -37,12 +40,17 @@ import se.dansarie.jsnowball.model.CrossRef;
 import se.dansarie.jsnowball.model.Journal;
 import se.dansarie.jsnowball.model.SnowballState;
 import se.dansarie.jsnowball.model.Tag;
+import se.dansarie.jsnowball.model.Article.ArticleStatus;
 
 public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDataListener {
 
+  private ButtonGroup buttonGroup = new ButtonGroup();
   private JTextField title = new JTextField();
   private JList<Author> authors =  new JList<>();
   private JComboBox<String> journal = new JComboBox<>();
+  private JRadioButton includedButton = new JRadioButton("Included");
+  private JRadioButton excludedButton = new JRadioButton("Excluded");
+  private JRadioButton undecidedButton = new JRadioButton("Undecided", true);
   private JTextField doi = new JTextField();
   private JTextField year = new JTextField();
   private JTextField month = new JTextField();
@@ -50,6 +58,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   private JTextField issue = new JTextField();
   private JTextField pages = new JTextField();
   private JTextArea notes = new JTextArea();
+  private JCheckBox startSet = new JCheckBox("In starting set");
   private JList<Tag> tags = new JList<>();
   private JList<Article> references = new JList<>();
   private JList<Article> referencedBy = new JList<>();
@@ -197,11 +206,18 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
         tag -> getItem().removeTag(tag));
 
   public ArticlePanel() {
+    buttonGroup.add(includedButton);
+    buttonGroup.add(excludedButton);
+    buttonGroup.add(undecidedButton);
     JScrollPane authorScrollPane = new JScrollPane(authors);
     JScrollPane notesScrollPane = new JScrollPane(notes);
     JScrollPane tagsScrollPane = new JScrollPane(tags);
     JScrollPane referencesScrollPane = new JScrollPane(references);
     JScrollPane referencedByScrollPane = new JScrollPane(referencedBy);
+    addComponent("", startSet);
+    addComponent("", includedButton);
+    addComponent("", excludedButton);
+    addComponent("", undecidedButton);
     addComponent("Title", title);
     addComponent("Authors", authorScrollPane);
     addComponent("Journal", journal);
@@ -224,6 +240,11 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     authors.addMouseListener(authorsListener);
     tags.addMouseListener(tagsListener);
     references.addMouseListener(referencesListener);
+
+    startSet.addActionListener(ev -> getItem().setStartSet(startSet.isSelected()));
+    includedButton.addActionListener(ev -> getItem().setStatus(ArticleStatus.INCLUDED));
+    excludedButton.addActionListener(ev -> getItem().setStatus(ArticleStatus.EXCLUDED));
+    undecidedButton.addActionListener(ev -> getItem().setStatus(ArticleStatus.UNDECIDED));
   }
 
   @Override
@@ -256,9 +277,15 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     issue.setText(a.getIssue());
     pages.setText(a.getPages());
     notes.setText(a.getNotes());
+    startSet.setSelected(a.inStartSet());
     tags.setModel(a.getTagListModel());
     references.setModel(a.getReferenceListModel());
     referencedBy.setModel(a.getReferencesToListModel());
+    switch (a.getStatus()) {
+      case INCLUDED:  includedButton.setSelected(true);  break;
+      case EXCLUDED:  excludedButton.setSelected(true);  break;
+      case UNDECIDED: undecidedButton.setSelected(true); break;
+    }
     enableComponents();
   }
 
