@@ -59,9 +59,15 @@ public class ScopusReferenceImportAction extends AbstractAction {
     }
     try {
       for (ScopusCsv csv : ScopusCsv.fromFile(chooser.getSelectedFile())) {
-        Article art = new Article(state, csv);
+        Article art = null;
+        if (csv.doi != null) {
+          art = Article.getByDoi(state, csv.doi);
+        }
+        if (art == null) {
+          art = new Article(state, csv);
+          art.setNotes(note);
+        }
         processor.accept(art);
-        art.setNotes(note);
       }
     } catch (IllegalArgumentException | IOException ex) {
       System.out.println(ex);
