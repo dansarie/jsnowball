@@ -160,6 +160,11 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   };
   private JButton mergeButton = new JButton(mergeArticlesAction);
 
+  ScopusReferenceImportAction scopusRefsAction = new ScopusReferenceImportAction(
+        "References from Scopus CSV...", this);
+    ScopusReferenceImportAction scopusRefsToAction = new ScopusReferenceImportAction(
+        "References to from Scopus CSV...", this);
+
   private ActionListener journalListener = new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent ev) {
@@ -206,6 +211,8 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
         tag -> getItem().removeTag(tag));
 
   public ArticlePanel() {
+    scopusRefsAction.setArticleProcessor(art -> getItem().addReference(art));
+    scopusRefsToAction.setArticleProcessor(art -> art.addReference(getItem()));
     buttonGroup.add(includedButton);
     buttonGroup.add(excludedButton);
     buttonGroup.add(undecidedButton);
@@ -233,6 +240,8 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     addComponent("Referenced by", referencedByScrollPane);
     addComponent("", deleteButton);
     addComponent("", importReferencesButton);
+    addComponent("", new JButton(scopusRefsAction));
+    addComponent("", new JButton(scopusRefsToAction));
     addComponent("", mergeButton);
     disableComponents();
 
@@ -281,6 +290,8 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     tags.setModel(a.getTagListModel());
     references.setModel(a.getReferenceListModel());
     referencedBy.setModel(a.getReferencesToListModel());
+    scopusRefsAction.setState(a.getState());
+    scopusRefsToAction.setState(a.getState());
     switch (a.getStatus()) {
       case INCLUDED:  includedButton.setSelected(true);  break;
       case EXCLUDED:  excludedButton.setSelected(true);  break;

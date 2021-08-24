@@ -71,24 +71,57 @@ public class Article extends SnowballStateMember {
           addAuthor(au);
         }
       }
-      if (r.journal != null) {
-        Journal jo = null;
-        if (r.issn != null) {
-          jo = Journal.getByIssn(state, r.issn);
+      setJournal(getJournal(r.journal, r.issn));
+    } finally {
+      unlock();
+    }
+  }
+
+  public Article(SnowballState state, ScopusCsv r) {
+    super(state);
+    lock();
+    try {
+      setDoi(r.doi);
+      setIssue(r.issue);
+      setJournal(getJournal(r.journal, r.issn));
+      setPages(r.page);
+      setTitle(r.title);
+      setVolume(r.volume);
+      setYear(r.year);
+      for (ScopusCsv.Author author : r.authors) {
+        Author au = Author.getByName(state, author.firstName, author.lastName);
+        if (au == null) {
+          au = new Author(state);
+          au.setFirstName(author.firstName);
+          au.setLastName(author.lastName);
         }
-        if (jo == null) {
-          jo = Journal.getByName(state, r.journal);
-        }
-        if (jo == null) {
-          jo = new Journal(state);
-          jo.setName(r.journal);
-          jo.setIssn(r.issn);
-        }
-        setJournal(jo);
+        addAuthor(au);
       }
     } finally {
       unlock();
     }
+  }
+
+  private Journal getJournal(String name, String issn) {
+    Journal jo = null;
+    SnowballState state = getState();
+    if (issn != null) {
+      jo = Journal.getByIssn(state, issn);
+      if (jo != null) {
+        return jo;
+      }
+    }
+    if (name != null) {
+      jo = Journal.getByName(state, name);
+      if (jo != null) {
+        return jo;
+      }
+      jo = new Journal(state);
+      jo.setName(name);
+      jo.setIssn(issn);
+      return jo;
+    }
+    return null;
   }
 
   public void addAuthor(Author author) {

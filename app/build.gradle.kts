@@ -19,6 +19,7 @@ repositories {
 dependencies {
     testImplementation("junit:junit:4.13.2")
     implementation("com.google.guava:guava:30.1.1-jre")
+    implementation("org.apache.commons:commons-csv:1.9.0")
     implementation("org.json:json:20210307")
 }
 

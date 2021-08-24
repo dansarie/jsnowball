@@ -54,6 +54,7 @@ import se.dansarie.jsnowball.gui.AuthorPanel;
 import se.dansarie.jsnowball.gui.GraphListener;
 import se.dansarie.jsnowball.gui.GraphPanel;
 import se.dansarie.jsnowball.gui.JournalPanel;
+import se.dansarie.jsnowball.gui.ScopusReferenceImportAction;
 import se.dansarie.jsnowball.gui.TagPanel;
 import se.dansarie.jsnowball.model.Article;
 import se.dansarie.jsnowball.model.Author;
@@ -253,6 +254,9 @@ public class JSnowball {
       w.execute();
     }
   };
+
+  private ScopusReferenceImportAction articlesFromScopusCsvAction = new ScopusReferenceImportAction(
+      "Add articles from Scopus CSV...", state, frame);
 
   private Action addArticleAction = new AbstractAction("New article") {
     @Override
@@ -565,6 +569,7 @@ public class JSnowball {
     tagTableModel.addWatched(articleListModel);
     articleGraph.setState(state);
     authorGraph.setState(state);
+    articlesFromScopusCsvAction.setState(state);
   }
 
   private void loadState(File fi) {
@@ -641,12 +646,14 @@ public class JSnowball {
 
     JMenu operationsMenu = new JMenu("Operations");
     JMenuItem addArticleDoi = new JMenuItem(articleFromDoiAction);
+    JMenuItem addArticleScopusCsv = new JMenuItem(articlesFromScopusCsvAction);
     JMenuItem addArticleManually = new JMenuItem(addArticleAction);
     JMenuItem addAuthorItem = new JMenuItem(addAuthorAction);
     JMenuItem addJournalItem = new JMenuItem(addJournalAction);
     JMenuItem addTagItem = new JMenuItem(addTagAction);
     operationsMenu.add(addArticleManually);
     operationsMenu.add(addArticleDoi);
+    operationsMenu.add(addArticleScopusCsv);
     operationsMenu.addSeparator();
     operationsMenu.add(addAuthorItem);
     operationsMenu.addSeparator();

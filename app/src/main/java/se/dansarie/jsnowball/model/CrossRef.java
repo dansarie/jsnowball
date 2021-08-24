@@ -149,7 +149,7 @@ public class CrossRef {
   private static int rate_limit_interval = -1;
   private static List<Long> previousRequests = new ArrayList<>();
 
-  public static CrossRef getDoi(String doi) throws IOException {
+  public synchronized static CrossRef getDoi(String doi) throws IOException {
     if (rate_limit > 0 && rate_limit_interval > 0) {
       long timenow = System.nanoTime();
       previousRequests.removeIf(t -> (timenow - t) > rate_limit_interval * 1000000000L);
@@ -218,7 +218,8 @@ public class CrossRef {
     }
   }
 
-  public static void addCrossRefReference(Article art, CrossRef.Reference ref) throws IOException {
+  public synchronized static void addCrossRefReference(Article art, CrossRef.Reference ref)
+      throws IOException {
     SnowballState state = art.getState();
     Article a = null;
     if (ref.doi != null) {
