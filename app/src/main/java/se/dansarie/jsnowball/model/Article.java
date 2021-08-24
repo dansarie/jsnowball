@@ -230,6 +230,22 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  @Override
+  protected void fireUpdated() {
+    lock();
+    try {
+      for (Author au : getAuthors()) {
+        au.fireUpdated();
+      }
+      if (getJournal() != null) {
+        getJournal().fireUpdated();
+      }
+      super.fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
   public List<Author> getAuthors() {
     lock();
     try {

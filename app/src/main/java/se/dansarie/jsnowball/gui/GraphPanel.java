@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.swing.JPanel;
 import javax.swing.ListModel;
@@ -38,6 +39,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   private Set<GraphListener<E>> listeners = new HashSet<>();
   private float temp = 20;
   private Timer timer = new Timer(50, ev -> redrawGraphs());
+  private Predicate<E> filter = m -> true;
 
   public GraphPanel() {
     GPMouseListener gpm = new GPMouseListener();
@@ -84,6 +86,10 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     getListModel().addListDataListener(this);
   }
 
+  public void setMemberFilter(Predicate<E> filter) {
+    this.filter = Objects.requireNonNull(filter);
+  }
+
   protected abstract Color getColor(E member);
 
   protected abstract ListModel<E> getListModel();
@@ -98,7 +104,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       for (E adj : new ArrayList<>(getEdges(no.getMember()))) {
         Node<E> adjNode = memberMap.get(adj);
         if (adjNode == null) {
-          System.out.println(adj);
+          continue;
         }
         no.addEdge(adjNode);
         adjNode.addEdgeTo(no);
@@ -111,6 +117,9 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     nodeMap.clear();
     for (int i = 0; i < listModel.getSize(); i++) {
       E member = listModel.getElementAt(i);
+      if (!filter.test(member)) {
+        continue;
+      }
       Node<E> node = memberMap.get(member);
       if (node == null) {
         node = new Node<>(member);

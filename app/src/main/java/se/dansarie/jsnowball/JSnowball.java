@@ -95,6 +95,9 @@ public class JSnowball {
   private File currentFile = null;
 
   private GraphPanel<Article> articleGraph = new GraphPanel<>() {
+    {
+      setMemberFilter(m -> m.getStatus() != Article.ArticleStatus.EXCLUDED);
+    }
     @Override
     public ListModel<Article> getListModel() {
       if (getState() == null) {
@@ -119,6 +122,10 @@ public class JSnowball {
   };
 
   private GraphPanel<Author> authorGraph = new GraphPanel<>() {
+    {
+      setMemberFilter(m -> m.getArticles().stream().anyMatch(
+          a -> a.getStatus() != Article.ArticleStatus.EXCLUDED));
+    }
     @Override
     public ListModel<Author> getListModel() {
       if (getState() == null) {
