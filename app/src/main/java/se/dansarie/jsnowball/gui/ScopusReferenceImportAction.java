@@ -52,10 +52,16 @@ public class ScopusReferenceImportAction extends AbstractAction {
     while (!lastdir.isDirectory()) {
       lastdir = lastdir.getParentFile();
     }
+    String note = JOptionPane.showInputDialog(parent, "Enter an input note",
+        "Add articles from Scopus CSV", JOptionPane.QUESTION_MESSAGE);
+    if (note == null) {
+      return;
+    }
     try {
       for (ScopusCsv csv : ScopusCsv.fromFile(chooser.getSelectedFile())) {
         Article art = new Article(state, csv);
         processor.accept(art);
+        art.setNotes(note);
       }
     } catch (IllegalArgumentException | IOException ex) {
       System.out.println(ex);
