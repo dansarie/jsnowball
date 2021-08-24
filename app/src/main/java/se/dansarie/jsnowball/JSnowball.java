@@ -179,6 +179,7 @@ public class JSnowball {
     public void actionPerformed(ActionEvent ev) {
       if (saveState(true, false)) {
         setState(new SnowballState());
+        currentFile = null;
       }
     }
   };
