@@ -503,7 +503,7 @@ public class Article extends SnowballStateMember {
           art.removeReference(this);
         }
       }
-      for (Article art : references) {
+      for (Article art : getReferences()) {
         removeReference(art);
       }
       getState().removeMember(this);
