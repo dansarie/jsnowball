@@ -425,7 +425,13 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
       if (selectedProperty == null) {
         removePropertyItem.setEnabled(false);
       } else {
-        removePropertyItem.addActionListener(ae -> removePropertyConsumer.accept(selectedProperty));
+        removePropertyItem.addActionListener(ae -> {
+          if (JOptionPane.showConfirmDialog(parent, "Do you really wish to remove the "
+              + propertyName, "Remove " + propertyName, JOptionPane.YES_NO_OPTION,
+              JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+            removePropertyConsumer.accept(selectedProperty);
+          }
+        });
       }
 
       JPopupMenu popup = new JPopupMenu();
