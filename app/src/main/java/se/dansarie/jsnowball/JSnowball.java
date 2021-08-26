@@ -371,25 +371,27 @@ public class JSnowball {
     public Class<?> getColumnClass(int col) {
       switch (col) {
         case 0: return String.class;
-        case 1: return Integer.class;
+        case 1: return String.class;
         case 2: return Integer.class;
-        case 3: return String.class;
+        case 3: return Integer.class;
+        case 4: return String.class;
         default: throw new IllegalArgumentException();
       }
     }
 
     @Override
     public int getColumnCount() {
-      return 4;
+      return 5;
     }
 
     @Override
     public String getColumnName(int col) {
       switch (col) {
         case 0: return "Article";
-        case 1: return "References";
-        case 2: return "Distance from start set";
-        case 3: return "Status";
+        case 1: return "Journal";
+        case 2: return "References";
+        case 3: return "Distance from start set";
+        case 4: return "Status";
         default: throw new IllegalArgumentException();
       }
     }
@@ -399,9 +401,10 @@ public class JSnowball {
       Article art = listModel.getElementAt(row);
       switch (col) {
         case 0: return art.toString();
-        case 1: return Integer.valueOf(art.getReferencesTo().size());
-        case 2: return art.distanceTo(state.getStartSet().toArray(new Article[0]));
-        case 3: return art.getStatus().toString();
+        case 1: return art.getJournal() == null ? "<No journal>" : art.getJournal().toString();
+        case 2: return Integer.valueOf(art.getReferencesTo().size());
+        case 3: return art.distanceTo(state.getStartSet().toArray(new Article[0]));
+        case 4: return art.getStatus().toString();
       }
       throw new IllegalArgumentException();
     }
@@ -972,10 +975,6 @@ public class JSnowball {
 
   public static void main(String[] args) {
     new JSnowball();
-
-    //Article.fromDoi(state, "10.1016/0167-4048(88)90003-X");
-    //Article.fromDoi(state, "10.21105/joss.02946");
-    //Article.fromDoi(state, "10.1007/3-540-48519-8_18");
   }
 
   private static abstract class SnowballTableModel<E> extends AbstractTableModel
