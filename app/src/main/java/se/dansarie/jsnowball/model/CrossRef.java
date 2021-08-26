@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -172,7 +173,7 @@ public class CrossRef {
       URLConnection connection = url.openConnection();
       connection.setRequestProperty("User-Agent", "JSnowball; (mailto:marcus@dansarie.se)");
       stream = (InputStream)connection.getContent();
-      jsondata = new String(stream.readAllBytes(), "UTF-8");
+      jsondata = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
       String limitstr = connection.getHeaderField("X-Rate-Limit-Limit");
       String intervalstr = connection.getHeaderField("X-Rate-Limit-Interval");
       if (limitstr != null && intervalstr != null) {
