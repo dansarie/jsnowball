@@ -252,6 +252,12 @@ public class JSnowball {
         @Override
         protected void done() {
           try {
+            CrossRef cr = get();
+            if (cr == null) {
+              JOptionPane.showMessageDialog(frame, "An error occurred while retrieving article "
+                  + "metadata.", "Create article from DOI", JOptionPane.ERROR_MESSAGE);
+              return;
+            }
             new Article(state, get());
           } catch (ExecutionException | InterruptedException ex) {
             System.out.println(ex);
