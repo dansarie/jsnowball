@@ -202,6 +202,18 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
         ref -> getItem().addReference(ref),
         ref -> getItem().removeReference(ref));
 
+  private AddRemovePreferencesListener<Article> referencedByListener =
+      new AddRemovePreferencesListener<>(referencedBy, "reference to",
+        () -> getItem().getState().getArticles(),
+        () -> {
+          List<Article> refs = new ArrayList<>(getItem().getReferencesTo());
+          refs.add(getItem());
+          return refs;
+        },
+        () -> referencedBy.getSelectedValue(),
+        ref -> ref.addReference(getItem()),
+        ref -> ref.removeReference(getItem()));
+
   private AddRemovePreferencesListener<Tag> tagsListener =
       new AddRemovePreferencesListener<>(tags, "tag",
         () -> getItem().getState().getTags(),
@@ -249,6 +261,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     authors.addMouseListener(authorsListener);
     tags.addMouseListener(tagsListener);
     references.addMouseListener(referencesListener);
+    referencedBy.addMouseListener(referencedByListener);
 
     startSet.addActionListener(ev -> getItem().setStartSet(startSet.isSelected()));
     includedButton.addActionListener(ev -> getItem().setStatus(ArticleStatus.INCLUDED));
