@@ -57,6 +57,7 @@ import se.dansarie.jsnowball.gui.JournalPanel;
 import se.dansarie.jsnowball.gui.ScopusReferenceImportAction;
 import se.dansarie.jsnowball.gui.TagPanel;
 import se.dansarie.jsnowball.model.Article;
+import se.dansarie.jsnowball.model.Arxiv;
 import se.dansarie.jsnowball.model.Author;
 import se.dansarie.jsnowball.model.CrossRef;
 import se.dansarie.jsnowball.model.Journal;
@@ -243,7 +244,7 @@ public class JSnowball {
         @Override
         protected CrossRef doInBackground() {
           try {
-            return CrossRef.getDoi(doi);
+            return CrossRef.getDoi(doi.trim());
           } catch (IOException ex) {
             System.out.println(ex);
             return null;
@@ -256,6 +257,44 @@ public class JSnowball {
             if (cr == null) {
               JOptionPane.showMessageDialog(frame, "An error occurred while retrieving article "
                   + "metadata.", "Create article from DOI", JOptionPane.ERROR_MESSAGE);
+              return;
+            }
+            new Article(state, get());
+          } catch (ExecutionException | InterruptedException ex) {
+            System.out.println(ex);
+            ex.printStackTrace();
+          }
+        }
+      };
+      w.execute();
+    }
+  };
+
+  private Action articleFromArxivAction = new AbstractAction("Add article from ArXiv id...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      String id = JOptionPane.showInputDialog(frame, "Enter an ArXiv id",
+          "Create article from ArXiv id", JOptionPane.QUESTION_MESSAGE);
+      if (id == null) {
+        return;
+      }
+      SwingWorker<Arxiv, Void> w = new SwingWorker<>() {
+        @Override
+        protected Arxiv doInBackground() {
+          try {
+            return Arxiv.getArxiv(id.trim());
+          } catch (IOException ex) {
+            System.out.println(ex);
+            return null;
+          }
+        }
+        @Override
+        protected void done() {
+          try {
+            Arxiv cr = get();
+            if (cr == null) {
+              JOptionPane.showMessageDialog(frame, "An error occurred while retrieving article "
+                  + "metadata.", "Create article from ArXiv id", JOptionPane.ERROR_MESSAGE);
               return;
             }
             new Article(state, get());
@@ -660,6 +699,7 @@ public class JSnowball {
 
     JMenu operationsMenu = new JMenu("Operations");
     JMenuItem addArticleDoi = new JMenuItem(articleFromDoiAction);
+    JMenuItem addArticleArxiv= new JMenuItem(articleFromArxivAction);
     JMenuItem addArticleScopusCsv = new JMenuItem(articlesFromScopusCsvAction);
     JMenuItem addArticleManually = new JMenuItem(addArticleAction);
     JMenuItem addAuthorItem = new JMenuItem(addAuthorAction);
@@ -667,6 +707,7 @@ public class JSnowball {
     JMenuItem addTagItem = new JMenuItem(addTagAction);
     operationsMenu.add(addArticleManually);
     operationsMenu.add(addArticleDoi);
+    operationsMenu.add(addArticleArxiv);
     operationsMenu.add(addArticleScopusCsv);
     operationsMenu.addSeparator();
     operationsMenu.add(addAuthorItem);

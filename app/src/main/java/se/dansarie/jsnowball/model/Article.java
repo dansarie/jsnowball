@@ -102,6 +102,34 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  public Article(SnowballState state, Arxiv a) {
+    super(state);
+    lock();
+    try {
+      setMonth(Integer.toString(a.published.getMonthValue()));
+      setNotes(a.id);
+      setTitle(a.title);
+      setYear(Integer.toString(a.published.getYear()));
+      for (Arxiv.Author author : a.authors) {
+        Author au = Author.getByName(state, author.firstName, author.lastName);
+        if (au == null) {
+          au = new Author(state);
+          au.setFirstName(author.firstName);
+          au.setLastName(author.lastName);
+        }
+        addAuthor(au);
+      }
+      Journal jo = Journal.getByName(state, "ArXiv");
+      if (jo == null) {
+        jo = new Journal(state);
+        jo.setName("ArXiv");
+      }
+      setJournal(jo);
+    } finally {
+      unlock();
+    }
+  }
+
   private Journal getJournal(String name, String issn) {
     Journal jo = null;
     SnowballState state = getState();
