@@ -160,6 +160,7 @@ public class Article extends SnowballStateMember {
       }
       if (!authors.contains(author)) {
         authors.add(author);
+        author.addArticle(this);
         Collections.sort(authors);
         SwingUtilities.invokeLater(() -> authorsListModel.fireAdded(author));
         fireUpdated();
@@ -491,6 +492,7 @@ public class Article extends SnowballStateMember {
         throw new IllegalArgumentException("Attempted to remove non-existing author.");
       }
       authors.remove(author);
+      author.removeArticle(this);
       SwingUtilities.invokeLater(() -> authorsListModel.fireRemoved(idx));
       fireUpdated();
     } finally {

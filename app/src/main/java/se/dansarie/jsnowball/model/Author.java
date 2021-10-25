@@ -1,6 +1,7 @@
 package se.dansarie.jsnowball.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,6 +14,7 @@ public class Author extends SnowballStateMember {
   private String lastname = "";
   private String orgname = "";
   private String orcid = "";
+  private List<Article> articles = new ArrayList<>();
 
   public Author(SnowballState state) {
     super(state);
@@ -30,16 +32,23 @@ public class Author extends SnowballStateMember {
     }
   }
 
+  void addArticle(Article art) {
+    lock();
+    try {
+      if(!articles.contains(Objects.requireNonNull(art))) {
+        return;
+      }
+      articles.add(art);
+      Collections.sort(articles);
+    } finally {
+      unlock();
+    }
+  }
+
   public List<Article> getArticles() {
     lock();
     try {
-      ArrayList<Article> articles = new ArrayList<>();
-      for (Article art : getState().getArticles()) {
-        if (art.getAuthors().contains(this)) {
-          articles.add(art);
-        }
-      }
-      return articles;
+      return Collections.unmodifiableList(new ArrayList<>(articles));
     } finally {
       unlock();
     }
@@ -116,6 +125,15 @@ public class Author extends SnowballStateMember {
         }
       }
       getState().removeMember(this);
+    } finally {
+      unlock();
+    }
+  }
+
+  void removeArticle(Article art) {
+    lock();
+    try {
+      articles.remove(Objects.requireNonNull(art));
     } finally {
       unlock();
     }
