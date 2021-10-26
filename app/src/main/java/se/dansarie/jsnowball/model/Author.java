@@ -35,7 +35,7 @@ public class Author extends SnowballStateMember {
   void addArticle(Article art) {
     lock();
     try {
-      if(!articles.contains(Objects.requireNonNull(art))) {
+      if(articles.contains(Objects.requireNonNull(art))) {
         return;
       }
       articles.add(art);
