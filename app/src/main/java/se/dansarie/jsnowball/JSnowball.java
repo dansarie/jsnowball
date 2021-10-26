@@ -23,8 +23,11 @@ import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -32,12 +35,14 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
@@ -801,6 +806,46 @@ public class JSnowball {
     leftSplitPane.setBottomComponent(articleScrollPane);
   }
 
+  private JPanel createGraphPanel(GraphPanel<?> gp) {
+    JPanel graphOptionsPanel = new JPanel();
+
+    SpinnerNumberModel sizeNumber = new SpinnerNumberModel(20, 1, 1000000, 10);
+    SpinnerNumberModel gravityNumber = new SpinnerNumberModel(1, 0.01, 1000000, 1);
+    SpinnerNumberModel tauNumber = new SpinnerNumberModel(1, 0.01, 1000000, 1);
+
+    sizeNumber.addChangeListener(ev -> gp.setKr((Integer)sizeNumber.getNumber()));
+    gravityNumber.addChangeListener(ev -> gp.setKg((float)(double)gravityNumber.getNumber()));
+    tauNumber.addChangeListener(ev -> gp.setTau((float)(double)tauNumber.getNumber()));
+
+    JSpinner sizeSpinner = new JSpinner(sizeNumber);
+    JSpinner gravitySpinner = new JSpinner(gravityNumber);
+    JSpinner tauSpinner = new JSpinner(tauNumber);
+    sizeSpinner.setPreferredSize(sizeSpinner.getMinimumSize());
+    sizeSpinner.setMaximumSize(sizeSpinner.getMinimumSize());
+    gravitySpinner.setPreferredSize(gravitySpinner.getMinimumSize());
+    gravitySpinner.setMaximumSize(gravitySpinner.getMinimumSize());
+    tauSpinner.setPreferredSize(tauSpinner.getMinimumSize());
+    tauSpinner.setMaximumSize(tauSpinner.getMinimumSize());
+
+    graphOptionsPanel.setLayout(new BoxLayout(graphOptionsPanel, BoxLayout.X_AXIS));
+    graphOptionsPanel.add(new JLabel("Scale: "));
+    graphOptionsPanel.add(sizeSpinner);
+    graphOptionsPanel.add(new JLabel("Gravity: "));
+    graphOptionsPanel.add(gravitySpinner);
+    graphOptionsPanel.add(new JLabel("Speed: "));
+    graphOptionsPanel.add(tauSpinner);
+    graphOptionsPanel.add(new JCheckBox(gp.getLinlogAction()));
+    graphOptionsPanel.add(new JCheckBox(gp.getGravityAction()));
+    graphOptionsPanel.add(new JCheckBox(gp.getDissuadeHubsAction()));
+    graphOptionsPanel.add(new JCheckBox(gp.getPreventOverlapAction()));
+
+    JPanel graphPanel = new JPanel();
+    graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
+    graphPanel.add(graphOptionsPanel);
+    graphPanel.add(new JScrollPane(gp));
+    return graphPanel;
+  }
+
   private void createRightTabbedPane() {
     JTable articleTable = new JTable(articleTableModel);
     JTable authorTable = new JTable(authorTableModel);
@@ -831,8 +876,8 @@ public class JSnowball {
     articleGraph.addGraphListener(articleGraphSelectionListener);
     authorGraph.addGraphListener(authorGraphSelectionListener);
 
-    rightTabbedPane.add(new JScrollPane(articleGraph), "Article graph");
-    rightTabbedPane.add(new JScrollPane(authorGraph), "Author graph");
+    rightTabbedPane.add(createGraphPanel(articleGraph), "Article graph");
+    rightTabbedPane.add(createGraphPanel(authorGraph), "Author graph");
     rightTabbedPane.add(new JScrollPane(articleTable), "Articles");
     rightTabbedPane.add(new JScrollPane(authorTable), "Authors");
     rightTabbedPane.add(new JScrollPane(journalTable), "Journals");

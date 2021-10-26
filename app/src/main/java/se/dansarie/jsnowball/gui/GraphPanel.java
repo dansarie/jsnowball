@@ -7,9 +7,11 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,6 +24,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JPanel;
 import javax.swing.ListModel;
 import javax.swing.Timer;
@@ -38,9 +42,57 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   private Map<E, Node<E>> memberMap = new HashMap<>();
   private Node<E> draggedNode = null;
   private Set<GraphListener<E>> listeners = new HashSet<>();
-  private float temp = 30;
   private Timer timer = new Timer(50, ev -> redrawGraph());
   private Predicate<E> filter = m -> true;
+
+  /* ForceAtlas2 settings. */
+  private float kr = 20;
+  private float kg = 1;
+  private float tau = 1;
+  private boolean linlog = false;
+  private boolean stronggravity = false;
+  private boolean dissuadehubs = false;
+  private boolean preventoverlap = false;
+
+  private Action linlogAction = new AbstractAction("LinLog") {
+    {
+      putValue(Action.SELECTED_KEY, false);
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      linlog = (Boolean)getValue(Action.SELECTED_KEY);
+    }
+  };
+
+  private Action gravityAction = new AbstractAction("Strong gravity") {
+    {
+      putValue(Action.SELECTED_KEY, false);
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      stronggravity = (Boolean)getValue(Action.SELECTED_KEY);
+    }
+  };
+
+  private Action dissuadeHubsAction = new AbstractAction("Dissuade hubs") {
+    {
+      putValue(Action.SELECTED_KEY, false);
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      dissuadehubs = (Boolean)getValue(Action.SELECTED_KEY);
+    }
+  };
+
+  private Action preventOverlapAction = new AbstractAction("Prevent overlap") {
+    {
+      putValue(Action.SELECTED_KEY, false);
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      preventoverlap = (Boolean)getValue(Action.SELECTED_KEY);
+    }
+  };
 
   public GraphPanel() {
     GPMouseListener gpm = new GPMouseListener();
@@ -83,7 +135,6 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     nodeMap.clear();
     memberMap.clear();
     draggedNode = null;
-    temp = 30;
     getListModel().addListDataListener(this);
   }
 
@@ -96,6 +147,40 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   protected abstract ListModel<E> getListModel();
 
   protected abstract List<E> getEdges(E member);
+
+  public Action getLinlogAction() {
+    return linlogAction;
+  }
+
+  public Action getGravityAction() {
+    return gravityAction;
+  }
+
+  public Action getDissuadeHubsAction() {
+    return dissuadeHubsAction;
+  }
+
+  public Action getPreventOverlapAction() {
+    return preventOverlapAction;
+  }
+
+  public void setKr(float kr) {
+    if (kr > 0) {
+      this.kr = kr;
+    }
+  }
+
+  public void setKg(float kg) {
+    if (kg > 0) {
+      this.kg = kg;
+    }
+  }
+
+  public void setTau(float tau) {
+    if (tau > 0) {
+      this.tau = tau;
+    }
+  }
 
   private void updateEdges() {
     for (Node<E> no : nodeMap.values()) {
@@ -131,9 +216,6 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       nodeMap.put(i, node);
     }
     memberMap.values().retainAll(nodeMap.values());
-    if (temp < 10) {
-      temp = 10;
-    }
     updateEdges();
     updateSize();
     repaint();
@@ -206,43 +288,88 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     n1.addForce(dx, dy);
   }
 
-  private void drawGraph(Collection<Node<E>> graph, float k) {
+  /* @see Jacomy, M., Venturini, T., Heymann, S., & Bastian, M. (2014). ForceAtlas2, a Continuous
+     Graph Layout Algorithm for Handy Network Visualization Designed for the Gephi Software. PLoS
+     ONE, 9(6), e98679. https://doi.org/10.1371/journal.pone.0098679 */
+  private void drawGraph(Collection<Node<E>> graph) {
     for (Node<E> n1 : graph) {
       n1.clearForces();
     }
     float centerx = 0;
     float centery = 0;
+
+    /* Repulsive force. */
     for (Node<E> n1 : graph) {
       for (Node<E> n2 : graph) {
         if (n1 == n2) {
           continue;
         }
-        updateForce(n1, n2, x -> k * k / x); /* Repulsive force. */
+        Function<Float, Float> repulsiveForce = d -> {
+          if (preventoverlap) {
+            d -= n1.getShapeSize() / 2 + n2.getShapeSize() / 2;
+          }
+          if (d > 0) {
+            return kr * (n1.getDegree() + 1) * (n2.getDegree() + 1) / d;
+          } else if (d < 0) {
+            return kr * (n1.getDegree() + 1) * (n2.getDegree() + 1);
+          } else {
+            return 0.0F;
+          }
+        };
+        updateForce(n1, n2, repulsiveForce);
       }
+
+      /* Attractive force. */
       for (Node<E> n2 : n1.getEdges()) {
-        updateForce(n1, n2, x -> -x * x / k); /* Attractive force. */
-        updateForce(n2, n1, x -> -x * x / k);
+        Function<Float, Float> attractiveForce = d -> {
+          if (preventoverlap) {
+            d -= n1.getShapeSize() / 2 + n2.getShapeSize() / 2;
+          }
+
+          if (d >= 0) {
+            float force = -d;
+            if (linlog) {
+              force = -(float)Math.log(1 + d);
+            }
+            if (dissuadehubs) {
+              force /= 1 + n1.getDegree(); /* FIXME. */
+            }
+            return force;
+          } else { /* Overlap */
+            return 0.0F;
+          }
+        };
+        updateForce(n1, n2, attractiveForce);
+        updateForce(n2, n1, attractiveForce);
       }
       centerx += n1.getX();
       centery += n1.getY();
     }
+
+    float globalSwing = 0;
+    float globalTraction = 0;
+
     Node<E> virtualCenter = new Node<>(null);
     virtualCenter.setX(centerx / graph.size());
     virtualCenter.setY(centery / graph.size());
     for (Node<E> n1 : graph) {
-      updateForce(n1, virtualCenter, x -> -x * x / k / 5);
+      float num = -kg * (n1.getDegree() + 1);
+      if (stronggravity) {
+        updateForce(n1, virtualCenter, x -> num * x);
+      } else {
+        updateForce(n1, virtualCenter, x -> num);
+      }
+      globalSwing += (n1.getDegree() + 1) * n1.getSwing();
+      globalTraction += (n1.getDegree() + 1) * n1.getTraction();
     }
+    float globalSpeed = tau * globalTraction / globalSwing;
 
     float minx = Integer.MAX_VALUE;
     float miny = Integer.MAX_VALUE;
     for (Node <E> node : graph) {
-      float fabs = (float)Math.hypot(node.force_x, node.force_y);
-      float dx = node.force_x;
-      float dy = node.force_y;
-      if (fabs > temp) {
-         dx *= temp / fabs;
-         dy *= temp / fabs;
-      }
+      float localspeed = 0.1F * globalSpeed / (1 + globalSpeed * (float)Math.sqrt(node.getSwing()));
+      float dx = node.force_x * localspeed;
+      float dy = node.force_y * localspeed;
       float x = node.getX() + dx;
       float y = node.getY() + dy;
       minx = Math.min(x, minx);
@@ -259,11 +386,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   }
 
   private void redrawGraph() {
-    if (temp < 0.001) {
-      return;
-    }
-    drawGraph(nodeMap.values(), 60);
-    temp *= 0.97;
+    drawGraph(nodeMap.values());
 
     updateSize();
     repaint();
@@ -290,9 +413,6 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       }
       draggedNode.setX(ev.getX());
       draggedNode.setY(ev.getY());
-      if (temp < 2) {
-        temp = 2;
-      }
       updateSize();
       repaint();
     }
@@ -320,8 +440,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     private Ellipse2D.Float shape = new Ellipse2D.Float(0, 0, 25, 25);
     float force_x = 0;
     float force_y = 0;
-    float remain_x = 0;
-    float remain_y = 0;
+    float previous_force = 0;
 
     private Node(E member) {
       this.member = member;
@@ -337,6 +456,11 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
 
     private Shape getShape() {
       return shape;
+    }
+
+    private float getShapeSize() {
+      Rectangle2D bounds = shape.getBounds2D();
+      return (float)Math.max(bounds.getHeight(), bounds.getWidth());
     }
 
     private void clearEdges() {
@@ -362,7 +486,20 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     }
 
     private void clearForces() {
+      previous_force = (float)Math.hypot(force_x, force_y);
       force_x = force_y = 0;
+    }
+
+    private int getDegree() {
+      return edgesTo.size();
+    }
+
+    private float getSwing() {
+      return (float)Math.abs(Math.hypot(force_x, force_y) - previous_force);
+    }
+
+    private float getTraction() {
+      return ((float)Math.hypot(force_x, force_y) + previous_force) / 2;
     }
 
     private float getX() {
@@ -382,15 +519,11 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     }
 
     private void setX(float x) {
-      x -= remain_x;
       shape.x = (int)x;
-      remain_x = shape.x - x;
     }
 
     private void setY(float y) {
-      y -= remain_y;
       shape.y = (int)y;
-      remain_y = shape.y - y;
     }
 
     @Override
