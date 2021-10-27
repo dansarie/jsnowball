@@ -14,6 +14,7 @@ public class Author extends SnowballStateMember {
   private String lastname = "";
   private String orgname = "";
   private String orcid = "";
+  private String stringrepr = null;
   private List<Article> articles = new ArrayList<>();
 
   public Author(SnowballState state) {
@@ -140,6 +141,7 @@ public class Author extends SnowballStateMember {
   public void setFirstName(String name) {
     lock();
     try {
+      stringrepr = null;
       firstname = Objects.requireNonNullElse(name, "");
       fireUpdated();
     } finally {
@@ -150,6 +152,7 @@ public class Author extends SnowballStateMember {
   public void setLastName(String name) {
     lock();
     try {
+      stringrepr = null;
       lastname = Objects.requireNonNullElse(name, "");
       fireUpdated();
     } finally {
@@ -214,7 +217,11 @@ public class Author extends SnowballStateMember {
   public String toString() {
     lock();
     try {
-      return getLastName() + ", " + getFirstName();
+      if (stringrepr != null) {
+        return stringrepr;
+      }
+      stringrepr = getLastName() + ", " + getFirstName();
+      return stringrepr;
     } finally {
       unlock();
     }

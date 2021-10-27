@@ -898,22 +898,24 @@ public class JSnowball {
     return graphPanel;
   }
 
-  private int levenshteinDistance(String a, String b) {
-    if (a == null || b == null) {
+  private int levenshteinDistance(String stra, String strb) {
+    if (stra == null || strb == null) {
       throw new NullPointerException();
     }
-    if (a == b) {
+    if (stra == strb) {
       return 0;
     }
-    if (a.length() == 0) {
-      return b.length();
+    char a[] = stra.toCharArray();
+    char b[] = strb.toCharArray();
+    if (a.length == 0) {
+      return b.length;
     }
-    if (b.length() == 0) {
-      return a.length();
+    if (b.length == 0) {
+      return a.length;
     }
 
-    int m = a.length();
-    int n = b.length();
+    int m = a.length;
+    int n = b.length;
     int d[] = new int[(m + 1) * (n + 1)];
 
     for (int i = 0; i <= m; i++) {
@@ -926,7 +928,7 @@ public class JSnowball {
     for (int j = 1; j <= n; j++) {
       for (int i = 1; i <= m; i++) {
         int cost = 1;
-        if (a.charAt(i - 1) == b.charAt(j - 1)) {
+        if (a[i - 1] == b[j - 1]) {
           cost = 0;
         }
         d[i + j * (m + 1)] = Math.min(d[i - 1 + j * (m + 1)] + 1,
