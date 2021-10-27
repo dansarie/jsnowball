@@ -43,6 +43,7 @@ import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -52,6 +53,7 @@ import javax.swing.event.ListDataListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableRowSorter;
 
 import org.json.JSONException;
 
@@ -896,6 +898,113 @@ public class JSnowball {
     return graphPanel;
   }
 
+  private int levenshteinDistance(String a, String b) {
+    if (a == null || b == null) {
+      throw new NullPointerException();
+    }
+    if (a == b) {
+      return 0;
+    }
+    if (a.length() == 0) {
+      return b.length();
+    }
+    if (b.length() == 0) {
+      return a.length();
+    }
+
+    int m = a.length();
+    int n = b.length();
+    int d[] = new int[(m + 1) * (n + 1)];
+
+    for (int i = 0; i <= m; i++) {
+      d[i] = i;
+    }
+    for (int j = 0; j <= n; j++) {
+      d[j * (m + 1)] = j;
+    }
+
+    for (int j = 1; j <= n; j++) {
+      for (int i = 1; i <= m; i++) {
+        int cost = 1;
+        if (a.charAt(i - 1) == b.charAt(j - 1)) {
+          cost = 0;
+        }
+        d[i + j * (m + 1)] = Math.min(d[i - 1 + j * (m + 1)] + 1,
+            Math.min(d[i + (j - 1) * (m + 1)] + 1,
+            d[i - 1 + (j - 1) * (m + 1)] + cost));
+      }
+    }
+
+    return d[d.length - 1];
+  }
+
+  private <T> RowFilter<SnowballTableModel<T>, Integer> createRowFilter(int column,
+      int sensitivity, boolean filterinitial) {
+    RowFilter<SnowballTableModel<T>, Integer> filter = new RowFilter<>() {
+      @Override
+      public boolean include(RowFilter.Entry<? extends SnowballTableModel<T>,
+          ? extends Integer> entry) {
+        String val = (String)entry.getValue(column);
+        if (filterinitial) {
+          val = val.substring(0, Math.min(val.length(), val.indexOf(",") + 3));
+        }
+        SnowballTableModel<T> model = entry.getModel();
+        for (int i = 0; i < model.getRowCount(); i++) {
+          if (i == entry.getIdentifier()) {
+            continue;
+          }
+          String str = (String)model.getValueAt(i, column);
+          if (filterinitial) {
+            str = str.substring(0, Math.min(str.length(), str.indexOf(",") + 3));
+          }
+          if (levenshteinDistance(str, val) <= sensitivity) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+    return filter;
+  }
+
+  private <T> JPanel createFilterPanel(JTable table, int column, boolean filterinitial) {
+    JPanel tableOptionsPanel = new JPanel();
+    SpinnerNumberModel sensitivityNumber = new SpinnerNumberModel(0, 0, 100, 1);
+    Action filterDuplicatesAction = new AbstractAction("Filter duplicates") {
+      {
+        putValue(Action.SELECTED_KEY, false);
+      }
+      @Override
+      public void actionPerformed(ActionEvent ev) {
+        @SuppressWarnings("all")
+        TableRowSorter<SnowballTableModel<T>> sorter = (TableRowSorter)table.getRowSorter();
+        if ((boolean)getValue(Action.SELECTED_KEY)) {
+          sorter.setRowFilter(createRowFilter(column, (int)sensitivityNumber.getValue(),
+              filterinitial));
+        } else {
+          sorter.setRowFilter(null);
+        }
+      }
+    };
+
+    sensitivityNumber.addChangeListener(ev -> filterDuplicatesAction.actionPerformed(null));
+
+    JSpinner sensitivitySpinner = new JSpinner(sensitivityNumber);
+    sensitivitySpinner.setPreferredSize(sensitivitySpinner.getMinimumSize());
+    sensitivitySpinner.setMaximumSize(sensitivitySpinner.getMinimumSize());
+
+    tableOptionsPanel.setLayout(new BoxLayout(tableOptionsPanel, BoxLayout.X_AXIS));
+    tableOptionsPanel.add(new JCheckBox(filterDuplicatesAction));
+    tableOptionsPanel.add(new JLabel("   Sensitivity: "));
+    tableOptionsPanel.add(sensitivitySpinner);
+
+    JPanel tablePanel = new JPanel();
+    tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
+    tablePanel.add(tableOptionsPanel);
+    tablePanel.add(new JScrollPane(table));
+    return tablePanel;
+  }
+
   private void createRightTabbedPane() {
     JTable articleTable = new JTable(articleTableModel);
     JTable authorTable = new JTable(authorTableModel);
@@ -928,9 +1037,9 @@ public class JSnowball {
 
     rightTabbedPane.add(createGraphPanel(articleGraph), "Article graph");
     rightTabbedPane.add(createGraphPanel(authorGraph), "Author graph");
-    rightTabbedPane.add(new JScrollPane(articleTable), "Articles");
-    rightTabbedPane.add(new JScrollPane(authorTable), "Authors");
-    rightTabbedPane.add(new JScrollPane(journalTable), "Journals");
+    rightTabbedPane.add(createFilterPanel(articleTable, 0, false), "Articles");
+    rightTabbedPane.add(createFilterPanel(authorTable, 0, true), "Authors");
+    rightTabbedPane.add(createFilterPanel(journalTable, 0, false), "Journals");
     rightTabbedPane.add(new JScrollPane(tagTable), "Tags");
     rightTabbedPane.add(new JPanel(), "Years");
   }
