@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -354,6 +355,52 @@ public class JSnowball {
       ta.setName("New tag");
       tabbedPane.setSelectedIndex(3);
       tagList.setSelectedIndex(state.getTags().indexOf(ta));
+    }
+  };
+
+  private Action pruneAuthorsAction = new AbstractAction("Prune authors...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      List<Author> pruneList = state.getAuthors().stream().filter(a -> a.getArticles().size() == 0)
+          .collect(Collectors.toList());
+      if (pruneList.size() == 0) {
+        JOptionPane.showMessageDialog(frame, "No authors to prune.", "Prune authors",
+            JOptionPane.INFORMATION_MESSAGE);
+        return;
+      }
+      int res = JOptionPane.showConfirmDialog(frame, "Prune " + pruneList.size() + " authors?",
+          "Prune authors", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+      if (res == JOptionPane.YES_OPTION) {
+        for (Author au : pruneList) {
+          au.remove();
+        }
+      }
+    }
+  };
+
+  private Action pruneJournalsAction = new AbstractAction("Prune journals...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      List<Journal> pruneList = state.getJournals().stream().filter(j -> {
+            for (Article ar : state.getArticles()) {
+              if (ar.getJournal() == j) {
+                return false;
+              }
+            }
+            return true;
+          }).collect(Collectors.toList());
+      if (pruneList.size() == 0) {
+        JOptionPane.showMessageDialog(frame, "No journals to prune.", "Prune journals",
+            JOptionPane.INFORMATION_MESSAGE);
+        return;
+      }
+      int res = JOptionPane.showConfirmDialog(frame, "Prune " + pruneList.size() + " journals?",
+          "Prune journals", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+      if (res == JOptionPane.YES_OPTION) {
+        for (Journal jo : pruneList) {
+          jo.remove();
+        }
+      }
     }
   };
 
@@ -712,6 +759,8 @@ public class JSnowball {
     JMenuItem addArticleManually = new JMenuItem(addArticleAction);
     JMenuItem addAuthorItem = new JMenuItem(addAuthorAction);
     JMenuItem addJournalItem = new JMenuItem(addJournalAction);
+    JMenuItem pruneAuthorsItem = new JMenuItem(pruneAuthorsAction);
+    JMenuItem pruneJournalsItem = new JMenuItem(pruneJournalsAction);
     JMenuItem addTagItem = new JMenuItem(addTagAction);
     operationsMenu.add(addArticleManually);
     operationsMenu.add(addArticleDoi);
@@ -719,10 +768,11 @@ public class JSnowball {
     operationsMenu.add(addArticleScopusCsv);
     operationsMenu.addSeparator();
     operationsMenu.add(addAuthorItem);
-    operationsMenu.addSeparator();
     operationsMenu.add(addJournalItem);
-    operationsMenu.addSeparator();
     operationsMenu.add(addTagItem);
+    operationsMenu.addSeparator();
+    operationsMenu.add(pruneAuthorsItem);
+    operationsMenu.add(pruneJournalsItem);
 
     JMenuItem aboutitem = new JMenuItem(showAboutAction);
     JMenu helpmenu = new JMenu("Help");

@@ -169,7 +169,7 @@ public class SnowballState {
       if (Objects.requireNonNull(member).getState() != this) {
         throw new IllegalArgumentException("Attempted to remove member from wrong state.");
       }
-
+      saved = false;
       List<? extends SnowballStateMember> list = null;
       SnowballListModel<? extends SnowballStateMember> listModel = null;
       if (member instanceof Article) {
@@ -190,7 +190,7 @@ public class SnowballState {
       final int idx = list.indexOf(member);
       list.remove(idx);
       final SnowballListModel<? extends SnowballStateMember> lm = listModel;
-      SwingUtilities.invokeLater(() -> lm.fireRemoved(idx));
+      SwingUtilities.invokeLater(() -> lm.fireChanged());
     } finally {
       unlock();
     }
