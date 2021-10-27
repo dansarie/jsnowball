@@ -119,10 +119,8 @@ public class Author extends SnowballStateMember {
   public void remove() {
     lock();
     try {
-      for (Article art : getState().getArticles()) {
-        if (art.getAuthors().contains(this)) {
-          art.removeAuthor(this);
-        }
+      for (Article art : articles) {
+        art.removeAuthor(this);
       }
       getState().removeMember(this);
     } finally {
