@@ -28,6 +28,6 @@ application {
 
 jpkg {
     useVersionFromGit = false
-    mainClass = "JSnowball"
+    mainClass = "se.dansarie.jsnowball.JSnowball"
     windows {}
 }
