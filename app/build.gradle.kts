@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("junit:junit:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     implementation("com.google.guava:guava:31.0.1-jre")
     implementation("org.apache.commons:commons-csv:1.9.0")
     implementation("org.json:json:20210307")
