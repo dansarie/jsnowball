@@ -29,5 +29,14 @@ application {
 jpkg {
     useVersionFromGit = false
     mainClass = "se.dansarie.jsnowball.JSnowball"
-    windows {}
+    packageName = "JSnowball"
+    vendor = "Marcus Dansarie"
+    copyright = "2021"
+    menuGroup = "JSnowball"
+    windows {
+        winDirChooser = true
+        winPerUser = true
+        winMenu = true
+        shortcut = true
+    }
 }
