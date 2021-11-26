@@ -30,7 +30,7 @@ tasks.jar {
     manifest {
         attributes(
             "Implementation-Title" to "JSnowball",
-            "Implementation-Version" to version
+            "Implementation-Version" to archiveVersion
         )
     }
 }
