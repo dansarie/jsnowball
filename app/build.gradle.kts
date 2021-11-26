@@ -26,6 +26,15 @@ application {
     mainClass.set("se.dansarie.jsnowball.JSnowball")
 }
 
+tasks.jar {
+    manifest {
+        attributes(
+            "Implementation-Title" to "JSnowball",
+            "Implementation-Version" to version
+        )
+    }
+}
+
 jpkg {
     useVersionFromGit = false
     mainClass = "se.dansarie.jsnowball.JSnowball"

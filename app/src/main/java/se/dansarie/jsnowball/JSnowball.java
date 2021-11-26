@@ -409,9 +409,28 @@ public class JSnowball {
   private Action showAboutAction = new AbstractAction("About JSnowball...") {
     @Override
     public void actionPerformed(ActionEvent ev) {
-      JOptionPane.showMessageDialog(frame,
-          "<html><center>JSnowball<br/><br/>Copyright (C) 2021 Marcus Dansarie</center></html>",
-          "About JSnowball", JOptionPane.INFORMATION_MESSAGE);
+      StringBuilder sb = new StringBuilder("<html><center>");
+      sb.append("<p style='width: 300px;'>");
+      sb.append("JSnowball version ");
+      sb.append(getClass().getPackage().getImplementationVersion());
+      sb.append("<br/><br/>");
+      sb.append("Copyright (C) 2021 Marcus Dansarie<br/><br/>");
+      sb.append("This program comes with ABSOLUTELY NO WARRANTY.<br/>");
+      sb.append("This is free software, and you are welcome to redistribute it under certain ");
+      sb.append("conditions, see the license for details.<br/><br/>");
+      sb.append(System.getProperty("java.vm.vendor"));
+      sb.append(' ');
+      sb.append(System.getProperty("java.vm.version"));
+      sb.append("<br/>");
+      sb.append(System.getProperty("os.name"));
+      sb.append(' ');
+      sb.append(System.getProperty("os.version"));
+      sb.append(" (");
+      sb.append(System.getProperty("os.arch"));
+      sb.append(')');
+      sb.append("</p></center></html>");
+      JOptionPane.showMessageDialog(frame, sb.toString(), "About JSnowball",
+          JOptionPane.INFORMATION_MESSAGE);
     }
   };
 
