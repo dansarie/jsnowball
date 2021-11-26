@@ -17,4 +17,4 @@ Expand-Archive -Path microsoft-jdk-17-windows-x64.zip
 Expand-Archive -Path wix311-binaries.zip
 $Env:JAVA_HOME = (Get-ChildItem -Filter "jdk-17*" -Recurse | % {$_.FullName})
 $Env:PATH = (Get-ChildItem -Filter "wix311-binaries" -Recurse | % {$_.FullName})
-.\gradlew.bat test jpackagebuild
+.\gradlew.bat --info test jpackage

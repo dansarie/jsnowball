@@ -8,6 +8,7 @@ JSnowball is a program for performing systematic literature studies through snow
 * [Apache Commons CSV](https://commons.apache.org/proper/commons-csv/)
 * [Google Guava](https://github.com/google/guava)
 * Java 17
+* [JPackage Gradle Plugin](https://github.com/petr-panteleyev/jpackage-gradle-plugin)
 * [JSON](https://www.json.org/json-en.html)
 
 All dependencies, except for the JDK and JRE are automatically installed by the Gradle wrapper build script.
@@ -25,7 +26,7 @@ Run the following commands in Powershell.
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
 .\WindowsBuild.ps1
 ```
-The script automatically downloads a JDK and the WiX installer and then runs the Gradle wrapper build script. An installer bundle will appear in app\build\jpkg\win.
+The script automatically downloads a JDK and the WiX installer and then runs the Gradle wrapper build script. An installer bundle will appear in app\build\dist.
 
 ## Test
 

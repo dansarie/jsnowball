@@ -14,7 +14,7 @@
 
 plugins {
     application
-    id("com.xcporter.jpkg") version "0.0.8"
+    id("org.panteleyev.jpackageplugin") version "1.3.1"
 }
 
 repositories {
@@ -36,22 +36,37 @@ tasks.jar {
     manifest {
         attributes(
             "Implementation-Title" to "JSnowball",
-            "Implementation-Version" to archiveVersion
+            "Implementation-Version" to project.property("archiveVersion") as String?
         )
     }
 }
 
-jpkg {
-    useVersionFromGit = false
-    mainClass = "se.dansarie.jsnowball.JSnowball"
-    packageName = "JSnowball"
+task("copyDependencies", Copy::class) {
+    from(configurations.runtimeClasspath).into("$buildDir/jars")
+}
+
+task("copyJar", Copy::class) {
+    from(tasks.jar).into("$buildDir/jars")
+}
+
+tasks.jpackage {
+    dependsOn("build", "copyDependencies", "copyJar")
+
+    input  = "$buildDir/jars"
+    destination = "$buildDir/dist"
+
+    appName = "JSnowball"
+    appVersion = project.property("archiveVersion") as String?
+    copyright = "Copyright (c) 2021 Marcus Dansarie"
     vendor = "Marcus Dansarie"
-    copyright = "2021"
-    menuGroup = "JSnowball"
+    mainClass = "se.dansarie.jsnowball.JSnowball"
+    mainJar = tasks.jar.get().archiveFileName.get()
+
     windows {
-        winDirChooser = true
-        winPerUser = true
         winMenu = true
-        shortcut = true
+        winDirChooser = true
+        winMenuGroup = "JSnowball"
+        winShortcut = true
+        winPerUserInstall = true
     }
 }
