@@ -1,6 +1,7 @@
 .gradle
 .project
 .settings
+.vscode
 app/bin
 app/build
 app/.classpath
