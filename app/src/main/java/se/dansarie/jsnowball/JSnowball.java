@@ -40,6 +40,7 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -417,6 +418,28 @@ public class JSnowball {
           jo.remove();
         }
       }
+    }
+  };
+
+  private Action osKeystoreAction = new AbstractAction("Use Windows keystore") {
+    {
+      setSelected(getPreferences().getBoolean("use_os_keystore", false));
+    }
+
+    private void setSelected(boolean selected) {
+      getPreferences().putBoolean("use_os_keystore", selected);
+      if (selected) {
+        putValue(Action.SELECTED_KEY, true);
+        System.setProperty("javax.net.ssl.trustStoreType", "WINDOWS-ROOT");
+      } else {
+        putValue(Action.SELECTED_KEY, false);
+        System.setProperty("javax.net.ssl.trustStoreType", "JKS");
+      }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      setSelected((Boolean)getValue(Action.SELECTED_KEY));
     }
   };
 
@@ -800,6 +823,7 @@ public class JSnowball {
     filemenu.add(saveasprojectitem);
     filemenu.addSeparator();
     filemenu.add(exititem);
+    menubar.add(filemenu);
 
     JMenu operationsMenu = new JMenu("Operations");
     JMenuItem addArticleDoi = new JMenuItem(articleFromDoiAction);
@@ -822,14 +846,20 @@ public class JSnowball {
     operationsMenu.addSeparator();
     operationsMenu.add(pruneAuthorsItem);
     operationsMenu.add(pruneJournalsItem);
+    menubar.add(operationsMenu);
+
+    if (System.getProperty("os.name").startsWith("Windows")) {
+      JMenu optionsMenu = new JMenu("Options");
+      JCheckBoxMenuItem osKeystoreItem = new JCheckBoxMenuItem(osKeystoreAction);
+      optionsMenu.add(osKeystoreItem);
+      menubar.add(optionsMenu);
+    }
 
     JMenuItem logitem = new JMenuItem(showLogAction);
     JMenuItem aboutitem = new JMenuItem(showAboutAction);
     JMenu helpmenu = new JMenu("Help");
     helpmenu.add(logitem);
     helpmenu.add(aboutitem);
-    menubar.add(filemenu);
-    menubar.add(operationsMenu);
     menubar.add(helpmenu);
   }
 
