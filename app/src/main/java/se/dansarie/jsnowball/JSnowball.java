@@ -26,6 +26,7 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -796,7 +797,7 @@ public class JSnowball {
     } else {
       fi = currentFile;
     }
-    try (PrintWriter pw = new PrintWriter(fi)) {
+    try (PrintWriter pw = new PrintWriter(fi, StandardCharsets.UTF_8)) {
       pw.print(state.getSerializationProxy().toJson());
     } catch (IOException ex) {
       LogWindow.getInstance().addLogData(ex.toString());
