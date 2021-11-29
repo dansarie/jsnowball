@@ -421,7 +421,7 @@ public class JSnowball {
     }
   };
 
-  private Action osKeystoreAction = new AbstractAction("Use Windows keystore") {
+  private Action osKeystoreAction = new AbstractAction("Use Windows certificate store") {
     {
       setSelected(getPreferences().getBoolean("use_os_keystore", false));
     }
@@ -440,6 +440,8 @@ public class JSnowball {
     @Override
     public void actionPerformed(ActionEvent ev) {
       setSelected((Boolean)getValue(Action.SELECTED_KEY));
+      JOptionPane.showMessageDialog(frame, "The program must be restarted before the new setting "
+          + "to take effect.", "JSnowball", JOptionPane.INFORMATION_MESSAGE);
     }
   };
 
