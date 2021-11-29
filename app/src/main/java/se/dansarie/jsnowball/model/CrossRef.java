@@ -31,6 +31,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import se.dansarie.jsnowball.gui.LogWindow;
+
 public class CrossRef {
   public final String publisher;
   public final String title;
@@ -201,18 +203,18 @@ public class CrossRef {
             rate_limit_interval = interval;
           }
         } catch (NumberFormatException ex) {
-          System.out.println(ex);
+          LogWindow.getInstance().addLogData(ex.toString());
         }
       }
     } catch (IOException ex) {
-      System.out.println(ex);
+      LogWindow.getInstance().addLogData(ex.toString());
       throw ex;
     } finally {
       if (stream != null) {
         try {
           stream.close();
         } catch (IOException ex) {
-          System.out.println(ex);
+          LogWindow.getInstance().addLogData(ex.toString());
         }
       }
     }
@@ -227,8 +229,7 @@ public class CrossRef {
       }
       return new CrossRef(json.getJSONObject("message"));
     } catch (DateTimeParseException | JSONException ex) {
-      System.out.println(ex);
-      ex.printStackTrace();
+      LogWindow.getInstance().addLogData(ex.toString());
       throw ex;
     }
   }

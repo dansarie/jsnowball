@@ -137,8 +137,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
               try {
                 CrossRef.addCrossRefReference(article, ref);
               } catch (IOException | RuntimeException ex) {
-                System.out.println(ex);
-                ex.printStackTrace();
+                LogWindow.getInstance().addLogData(ex.toString());
               }
               pm.setProgress(i++);
             }

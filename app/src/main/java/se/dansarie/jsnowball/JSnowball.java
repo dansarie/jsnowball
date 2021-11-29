@@ -76,6 +76,7 @@ import se.dansarie.jsnowball.gui.AuthorPanel;
 import se.dansarie.jsnowball.gui.GraphListener;
 import se.dansarie.jsnowball.gui.GraphPanel;
 import se.dansarie.jsnowball.gui.JournalPanel;
+import se.dansarie.jsnowball.gui.LogWindow;
 import se.dansarie.jsnowball.gui.ScopusReferenceImportAction;
 import se.dansarie.jsnowball.gui.TagPanel;
 import se.dansarie.jsnowball.model.Article;
@@ -268,7 +269,7 @@ public class JSnowball {
           try {
             return CrossRef.getDoi(doi.trim());
           } catch (IOException ex) {
-            System.out.println(ex);
+            LogWindow.getInstance().addLogData(ex.toString());
             return null;
           }
         }
@@ -283,8 +284,7 @@ public class JSnowball {
             }
             new Article(state, get());
           } catch (ExecutionException | InterruptedException ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LogWindow.getInstance().addLogData(ex.toString());
           }
         }
       };
@@ -306,7 +306,7 @@ public class JSnowball {
           try {
             return Arxiv.getArxiv(id.trim());
           } catch (IOException ex) {
-            System.out.println(ex);
+            LogWindow.getInstance().addLogData(ex.toString());
             return null;
           }
         }
@@ -321,7 +321,7 @@ public class JSnowball {
             }
             new Article(state, get());
           } catch (ExecutionException | InterruptedException ex) {
-            System.out.println(ex);
+            LogWindow.getInstance().addLogData(ex.toString());
             ex.printStackTrace();
           }
         }
@@ -417,6 +417,13 @@ public class JSnowball {
           jo.remove();
         }
       }
+    }
+  };
+
+  private Action showLogAction = new AbstractAction("Show debug log...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      LogWindow.getInstance().setVisible(true);
     }
   };
 
@@ -664,8 +671,15 @@ public class JSnowball {
   };
 
   private JSnowball() {
+    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread thread, Throwable ex) {
+        LogWindow.getInstance().addLogData(ex.toString());
+      }
+    });
     setState(new SnowballState());
     createFrame();
+    frame.addWindowListener(LogWindow.getInstance().getCloseListener());
   }
 
   private void setState(SnowballState state) {
@@ -809,8 +823,10 @@ public class JSnowball {
     operationsMenu.add(pruneAuthorsItem);
     operationsMenu.add(pruneJournalsItem);
 
+    JMenuItem logitem = new JMenuItem(showLogAction);
     JMenuItem aboutitem = new JMenuItem(showAboutAction);
     JMenu helpmenu = new JMenu("Help");
+    helpmenu.add(logitem);
     helpmenu.add(aboutitem);
     menubar.add(filemenu);
     menubar.add(operationsMenu);

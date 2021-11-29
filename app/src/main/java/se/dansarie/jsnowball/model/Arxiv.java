@@ -33,6 +33,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import se.dansarie.jsnowball.gui.LogWindow;
+
 public class Arxiv {
   public final String id;
   public final String title;
@@ -103,19 +105,17 @@ public class Arxiv {
       Document xml = builder.parse(stream);
       return new Arxiv(xml);
     } catch (IOException ex) {
-      System.out.println(ex);
-      ex.printStackTrace();
+      LogWindow.getInstance().addLogData(ex.toString());
       throw ex;
     } catch (ParserConfigurationException | SAXException ex) {
-      System.out.println(ex);
-      ex.printStackTrace();
+      LogWindow.getInstance().addLogData(ex.toString());
       return null;
     } finally {
       if (stream != null) {
         try {
           stream.close();
         } catch (IOException ex) {
-          System.out.println(ex);
+          LogWindow.getInstance().addLogData(ex.toString());
         }
       }
     }
