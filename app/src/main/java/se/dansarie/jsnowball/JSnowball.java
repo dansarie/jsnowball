@@ -15,6 +15,7 @@
 package se.dansarie.jsnowball;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
@@ -25,7 +26,11 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -72,6 +77,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableRowSorter;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import se.dansarie.jsnowball.gui.ArticlePanel;
 import se.dansarie.jsnowball.gui.AuthorPanel;
@@ -707,6 +713,27 @@ public class JSnowball {
     });
     setState(new SnowballState());
     createFrame();
+
+    String thisRelease = getClass().getPackage().getImplementationVersion();
+    if (thisRelease != null) {
+      String latestRelease = getLatestRelease();
+      if (latestRelease != null && !latestRelease.equals(thisRelease)) {
+        StringBuilder sb = new StringBuilder("<html><center>");
+        sb.append("A newer version of JSnowball is available: ");
+        sb.append(latestRelease);
+        sb.append("<br/>");
+        sb.append("Do you want to go to the download page?</center></html>");
+        int res = JOptionPane.showConfirmDialog(frame, sb.toString(), "JSnowball",
+            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (res == JOptionPane.YES_OPTION) {
+          try {
+            Desktop.getDesktop().browse(new URI("https://github.com/dansarie/jsnowball/releases"));
+          } catch (Exception ex) {
+            LogWindow.getInstance().addLogData(ex.toString());
+          }
+        }
+      }
+    }
   }
 
   private void setState(SnowballState state) {
@@ -1262,6 +1289,22 @@ public class JSnowball {
       return null;
     }
     return new File(path);
+  }
+
+  private String getLatestRelease() {
+    try {
+      URL url = new URL("https://api.github.com/repos/dansarie/jsnowball/releases/latest");
+      URLConnection connection = url.openConnection();
+      InputStream stream = (InputStream)connection.getContent();
+      String jsondata = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+      JSONObject json = new JSONObject(jsondata);
+      if (json.has("name")) {
+        return json.getString("name");
+      }
+    } catch (IOException ex) {
+      LogWindow.getInstance().addLogData(ex.toString());
+    }
+    return null;
   }
 
   public static void main(String[] args) {
