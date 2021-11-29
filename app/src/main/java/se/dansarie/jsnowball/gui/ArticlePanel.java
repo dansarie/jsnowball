@@ -115,6 +115,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
           try {
             cr = CrossRef.getDoi(doi);
           } catch (IOException ex) {
+            LogWindow.getInstance().addLogData(ex.toString());
             SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(ArticlePanel.this,
                 "Error when retrieving article metadata.", "Import references",
                 JOptionPane.ERROR_MESSAGE));

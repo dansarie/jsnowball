@@ -761,6 +761,7 @@ public class JSnowball {
       setState(SnowballState.fromJson(json));
       currentFile = fi;
     } catch (IOException | JSONException ex) {
+      LogWindow.getInstance().addLogData(ex.toString());
       JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
           + " file.", "File error", JOptionPane.ERROR_MESSAGE);
     }
@@ -798,6 +799,7 @@ public class JSnowball {
     try (PrintWriter pw = new PrintWriter(fi)) {
       pw.print(state.getSerializationProxy().toJson());
     } catch (IOException ex) {
+      LogWindow.getInstance().addLogData(ex.toString());
       JOptionPane.showMessageDialog(frame, "An error occured while attempting to save the project"
           + " file.", "File error", JOptionPane.ERROR_MESSAGE);
       return false;

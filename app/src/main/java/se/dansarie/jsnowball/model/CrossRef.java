@@ -176,6 +176,7 @@ public class CrossRef {
         try {
           Thread.sleep(sleeptime / 1000000L, (int)(sleeptime % 1000000L));
         } catch (InterruptedException ex) {
+          LogWindow.getInstance().addLogData(ex.toString());
         }
         return getDoi(doi);
       }
