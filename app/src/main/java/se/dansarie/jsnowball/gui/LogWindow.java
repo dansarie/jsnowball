@@ -14,9 +14,6 @@
 
 package se.dansarie.jsnowball.gui;
 
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
@@ -31,12 +28,6 @@ public class LogWindow extends JFrame {
   private JTextArea log = new JTextArea();
   private JScrollPane scrollPane = new JScrollPane(log);
   private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-  private WindowAdapter closeListener = new WindowAdapter() {
-    @Override
-    public void windowClosing(WindowEvent ev) {
-      LogWindow.this.dispose();
-    }
-  };
 
   private LogWindow() {
     setSize(800, 600);
@@ -52,10 +43,6 @@ public class LogWindow extends JFrame {
     sb.append(logdata);
     sb.append("\n\n");
     SwingUtilities.invokeLater(()-> log.append(sb.toString()));
-  }
-
-  public WindowListener getCloseListener() {
-    return closeListener;
   }
 
   public static LogWindow getInstance() {

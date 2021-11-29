@@ -190,7 +190,9 @@ public class JSnowball {
     public void actionPerformed(ActionEvent ev) {
       if (saveState(true, false)) {
         frame.setVisible(false);
+        LogWindow.getInstance().setVisible(false);
         frame.dispose();
+        LogWindow.getInstance().dispose();
       }
     }
   };
@@ -704,7 +706,6 @@ public class JSnowball {
     });
     setState(new SnowballState());
     createFrame();
-    frame.addWindowListener(LogWindow.getInstance().getCloseListener());
   }
 
   private void setState(SnowballState state) {
