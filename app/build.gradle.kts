@@ -22,7 +22,8 @@ repositories {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.2")
     implementation("com.google.guava:guava:31.0.1-jre")
     implementation("org.apache.commons:commons-csv:1.9.0")
     implementation("org.json:json:20210307")
@@ -30,6 +31,10 @@ dependencies {
 
 application {
     mainClass.set("se.dansarie.jsnowball.JSnowball")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {
