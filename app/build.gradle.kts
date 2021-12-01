@@ -14,7 +14,9 @@
 
 plugins {
     application
+    jacoco
     id("org.panteleyev.jpackageplugin") version "1.3.1"
+    id("com.github.nbaztec.coveralls-jacoco") version "1.2.13"
 }
 
 repositories {
@@ -35,6 +37,18 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+    }
+}
+
+coverallsJacoco {
+    reportPath = "app/build/reports/jacoco/test/jacocoTestReport.xml"
 }
 
 tasks.jar {
