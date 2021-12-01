@@ -1,6 +1,6 @@
 # JSnowball
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://travis-ci.com/github/dansarie/jsnowball.svg?branch=master)](https://travis-ci.com/dansarie/jsnowball)
+[![Build Status](https://travis-ci.com/dansarie/jsnowball.svg?branch=master)](https://travis-ci.com/github/dansarie/jsnowball)
 
 JSnowball is a program for performing systematic literature studies through snowballing and for visualization of citation relations between academic papers.
 
