@@ -91,13 +91,14 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   };
   private JButton deleteButton = new JButton(deleteAction);
 
-  private Action importReferencesAction = new AbstractAction("Import references") {
+  private Action importReferencesAction =
+      new AbstractAction("Import outbound references from CrossRef") {
     @Override
     public void actionPerformed(ActionEvent ev) {
       String doi = getItem().getDoi();
       if (doi == null || doi.trim().length() == 0) {
         JOptionPane.showMessageDialog(ArticlePanel.this, "Importing references requires a DOI.",
-            "Import references", JOptionPane.ERROR_MESSAGE);
+            "Import outbound references from CrossRef", JOptionPane.ERROR_MESSAGE);
         return;
       }
 
@@ -117,8 +118,8 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
           } catch (IOException ex) {
             LogWindow.getInstance().addLogData(ex.toString());
             SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(ArticlePanel.this,
-                "Error when retrieving article metadata.", "Import references",
-                JOptionPane.ERROR_MESSAGE));
+                "Error when retrieving article metadata.",
+                "Import outbound references from CrossRef", JOptionPane.ERROR_MESSAGE));
             return null;
           }
           int i = 1;
@@ -175,9 +176,9 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   private JButton mergeButton = new JButton(mergeArticlesAction);
 
   ScopusReferenceImportAction scopusRefsAction = new ScopusReferenceImportAction(
-        "References from Scopus CSV...", this);
+        "Import outbound references from Scopus CSV...", this);
     ScopusReferenceImportAction scopusRefsToAction = new ScopusReferenceImportAction(
-        "References to from Scopus CSV...", this);
+        "Import inbound references from Scopus CSV...", this);
 
   private ActionListener journalListener = new ActionListener() {
     @Override
@@ -262,8 +263,8 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     addComponent("Pages", pages);
     addComponent("Notes", notesScrollPane);
     addComponent("Tags", tagsScrollPane);
-    addComponent("References", referencesScrollPane);
-    addComponent("Referenced by", referencedByScrollPane);
+    addComponent("Outbound references", referencesScrollPane);
+    addComponent("Inbound references", referencedByScrollPane);
     addComponent("", deleteButton);
     addComponent("", importReferencesButton);
     addComponent("", new JButton(scopusRefsAction));

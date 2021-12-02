@@ -517,7 +517,7 @@ public class JSnowball {
       switch (col) {
         case 0: return "Article";
         case 1: return "Journal";
-        case 2: return "References";
+        case 2: return "Inbound references";
         case 3: return "Distance from start set";
         case 4: return "Status";
         default: throw new IllegalArgumentException();
