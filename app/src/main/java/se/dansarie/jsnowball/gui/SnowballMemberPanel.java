@@ -152,7 +152,7 @@ public abstract class SnowballMemberPanel<E> extends JPanel implements DocumentL
       Consumer<String> updater = textComponentUpdated(pc);
       updater.accept(doc.getText(0, doc.getLength()));
     } catch (BadLocationException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       throw new RuntimeException(ex);
     }
   }

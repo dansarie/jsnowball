@@ -14,6 +14,10 @@
 
 package se.dansarie.jsnowball.gui;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
@@ -36,12 +40,21 @@ public class LogWindow extends JFrame {
     getContentPane().add(scrollPane);
   }
 
-  public void addLogData(String logdata) {
-    Objects.requireNonNull(logdata);
+  public void addThrowable(Throwable thr) {
+    Objects.requireNonNull(thr);
     StringBuilder sb = new StringBuilder(sdf.format(new Date()));
     sb.append('\n');
-    sb.append(logdata);
-    sb.append("\n\n");
+    try (
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      PrintStream ps = new PrintStream(baos, false, StandardCharsets.UTF_8)
+    ) {
+      thr.printStackTrace(ps);
+      ps.flush();
+      sb.append(baos.toString());
+    } catch (IOException ex) {
+      sb.append("Exception when getting stack trace: ");
+      sb.append(ex.toString());
+    }
     SwingUtilities.invokeLater(()-> log.append(sb.toString()));
   }
 

@@ -116,7 +116,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
           try {
             cr = CrossRef.getDoi(doi);
           } catch (IOException ex) {
-            LogWindow.getInstance().addLogData(ex.toString());
+            LogWindow.getInstance().addThrowable(ex);
             SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(ArticlePanel.this,
                 "Error when retrieving article metadata.",
                 "Import outbound references from CrossRef", JOptionPane.ERROR_MESSAGE));
@@ -139,7 +139,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
               try {
                 CrossRef.addCrossRefReference(article, ref);
               } catch (IOException | RuntimeException ex) {
-                LogWindow.getInstance().addLogData(ex.toString());
+                LogWindow.getInstance().addThrowable(ex);
               }
               pm.setProgress(i++);
             }

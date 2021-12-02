@@ -176,7 +176,7 @@ public class CrossRef {
         try {
           Thread.sleep(sleeptime / 1000000L, (int)(sleeptime % 1000000L));
         } catch (InterruptedException ex) {
-          LogWindow.getInstance().addLogData(ex.toString());
+          LogWindow.getInstance().addThrowable(ex);
         }
         return getDoi(doi);
       }
@@ -204,18 +204,18 @@ public class CrossRef {
             rate_limit_interval = interval;
           }
         } catch (NumberFormatException ex) {
-          LogWindow.getInstance().addLogData(ex.toString());
+          LogWindow.getInstance().addThrowable(ex);
         }
       }
     } catch (IOException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       throw ex;
     } finally {
       if (stream != null) {
         try {
           stream.close();
         } catch (IOException ex) {
-          LogWindow.getInstance().addLogData(ex.toString());
+          LogWindow.getInstance().addThrowable(ex);
         }
       }
     }
@@ -230,7 +230,7 @@ public class CrossRef {
       }
       return new CrossRef(json.getJSONObject("message"));
     } catch (DateTimeParseException | JSONException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       throw ex;
     }
   }

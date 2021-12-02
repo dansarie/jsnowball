@@ -279,7 +279,7 @@ public class JSnowball {
           try {
             return CrossRef.getDoi(doi.trim());
           } catch (IOException ex) {
-            LogWindow.getInstance().addLogData(ex.toString());
+            LogWindow.getInstance().addThrowable(ex);
             return null;
           }
         }
@@ -294,7 +294,7 @@ public class JSnowball {
             }
             new Article(state, get());
           } catch (ExecutionException | InterruptedException ex) {
-            LogWindow.getInstance().addLogData(ex.toString());
+            LogWindow.getInstance().addThrowable(ex);
           }
         }
       };
@@ -316,7 +316,7 @@ public class JSnowball {
           try {
             return Arxiv.getArxiv(id.trim());
           } catch (IOException ex) {
-            LogWindow.getInstance().addLogData(ex.toString());
+            LogWindow.getInstance().addThrowable(ex);
             return null;
           }
         }
@@ -331,7 +331,7 @@ public class JSnowball {
             }
             new Article(state, get());
           } catch (ExecutionException | InterruptedException ex) {
-            LogWindow.getInstance().addLogData(ex.toString());
+            LogWindow.getInstance().addThrowable(ex);
             ex.printStackTrace();
           }
         }
@@ -708,7 +708,7 @@ public class JSnowball {
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
       @Override
       public void uncaughtException(Thread thread, Throwable ex) {
-        LogWindow.getInstance().addLogData(ex.toString());
+        LogWindow.getInstance().addThrowable(ex);
       }
     });
     setState(new SnowballState());
@@ -729,7 +729,7 @@ public class JSnowball {
           try {
             Desktop.getDesktop().browse(new URI("https://github.com/dansarie/jsnowball/releases"));
           } catch (Exception ex) {
-            LogWindow.getInstance().addLogData(ex.toString());
+            LogWindow.getInstance().addThrowable(ex);
           }
         }
       }
@@ -789,7 +789,7 @@ public class JSnowball {
       setState(SnowballState.fromJson(json));
       currentFile = fi;
     } catch (IOException | JSONException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       JOptionPane.showMessageDialog(frame, "An error occured while attempting to read the project"
           + " file.", "File error", JOptionPane.ERROR_MESSAGE);
     }
@@ -827,7 +827,7 @@ public class JSnowball {
     try (PrintWriter pw = new PrintWriter(fi, StandardCharsets.UTF_8)) {
       pw.print(state.getSerializationProxy().toJson());
     } catch (IOException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       JOptionPane.showMessageDialog(frame, "An error occured while attempting to save the project"
           + " file.", "File error", JOptionPane.ERROR_MESSAGE);
       return false;
@@ -1260,7 +1260,7 @@ public class JSnowball {
         return json.getString("name");
       }
     } catch (IOException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
     }
     return null;
   }

@@ -84,7 +84,7 @@ public class ScopusReferenceImportAction extends AbstractAction {
         processor.accept(art);
       }
     } catch (IllegalArgumentException | IOException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       JOptionPane.showMessageDialog(parent, "An error occured while reading the input file.",
           "Add articles from Scopus CSV", JOptionPane.ERROR_MESSAGE);
     }

@@ -105,17 +105,17 @@ public class Arxiv {
       Document xml = builder.parse(stream);
       return new Arxiv(xml);
     } catch (IOException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       throw ex;
     } catch (ParserConfigurationException | SAXException ex) {
-      LogWindow.getInstance().addLogData(ex.toString());
+      LogWindow.getInstance().addThrowable(ex);
       return null;
     } finally {
       if (stream != null) {
         try {
           stream.close();
         } catch (IOException ex) {
-          LogWindow.getInstance().addLogData(ex.toString());
+          LogWindow.getInstance().addThrowable(ex);
         }
       }
     }
