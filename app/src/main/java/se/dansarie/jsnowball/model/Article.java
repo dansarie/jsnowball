@@ -233,12 +233,18 @@ public class Article extends SnowballStateMember {
   public int distanceTo(Article... articles) {
     lock();
     try {
+      SnowballState state = getState();
       List<Article> destinations = Arrays.asList(articles);
+      for (Article art : destinations) {
+        if (art.getState() != state) {
+          throw new IllegalArgumentException();
+        }
+      }
       if (destinations.contains(this)) {
         return 0;
       }
 
-      List<Article> all = getState().getArticles();
+      List<Article> all = state.getArticles();
       Map<Article, Integer> dist = new HashMap<>();
       for (Article a : all) {
         dist.put(a, -1);
