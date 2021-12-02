@@ -206,7 +206,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
         au -> getItem().removeAuthor(au));
 
   private AddRemovePreferencesListener<Article> referencesListener =
-      new AddRemovePreferencesListener<>(references, "reference",
+      new AddRemovePreferencesListener<>(references, "outbound reference",
         () -> getItem().getState().getArticles(),
         () -> {
           List<Article> refs = new ArrayList<>(getItem().getReferences());
@@ -218,7 +218,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
         ref -> getItem().removeReference(ref));
 
   private AddRemovePreferencesListener<Article> referencedByListener =
-      new AddRemovePreferencesListener<>(referencedBy, "reference to",
+      new AddRemovePreferencesListener<>(referencedBy, "inbound reference",
         () -> getItem().getState().getArticles(),
         () -> {
           List<Article> refs = new ArrayList<>(getItem().getReferencesTo());
