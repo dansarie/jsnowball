@@ -16,11 +16,14 @@ package se.dansarie.jsnowball.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import se.dansarie.jsnowball.model.Article.ArticleStatus;
 
 public class TestSnowballState {
 
@@ -40,6 +43,7 @@ public class TestSnowballState {
   private Journal journal1_1;
   private Journal journal2_1;
   private Tag tag1_1;
+  private Tag tag1_2;
   private Tag tag2_1;
 
   @BeforeEach
@@ -81,6 +85,7 @@ public class TestSnowballState {
     journal2_1.setIssn("0000-2222");
 
     tag1_1 = new Tag(state1);
+    tag1_2 = new Tag(state1);
     tag2_1 = new Tag(state2);
 
     article1_1 = new Article(state1);
@@ -94,6 +99,7 @@ public class TestSnowballState {
     article1_1.addAuthor(author1_1);
     article1_1.addAuthor(author1_2);
     article1_1.addTag(tag1_1);
+    article1_1.addTag(tag1_2);
     article1_2 = new Article(state1);
     article1_2.setTitle("Article1_2");
     article1_2.setDoi("10.1000/182");
@@ -103,6 +109,7 @@ public class TestSnowballState {
     article1_2.setVolume("120");
     article1_2.setYear("1912");
     article1_2.addAuthor(author1_1);
+    article1_2.addTag(tag1_2);
     article1_2.setJournal(journal1_1);
     article1_3 = new Article(state1);
     article1_3.setTitle("Article1_3");
@@ -158,12 +165,12 @@ public class TestSnowballState {
 
   @Test
   public void testAddTag() {
-    assertEquals(1, article1_1.getTags().size());
+    assertEquals(2, article1_1.getTags().size());
     article1_1.addTag(tag1_1);
-    assertEquals(1, article1_1.getTags().size());
-    assertEquals(0, article1_2.getTags().size());
-    article1_2.addTag(tag1_1);
+    assertEquals(2, article1_1.getTags().size());
     assertEquals(1, article1_2.getTags().size());
+    article1_2.addTag(tag1_1);
+    assertEquals(2, article1_2.getTags().size());
     assertEquals(tag1_1, article1_2.getTags().get(0));
     assertThrows(IllegalArgumentException.class, () -> article1_1.addTag(tag2_1));
   }
@@ -199,5 +206,107 @@ public class TestSnowballState {
     assertEquals("123", article1_3.getIssue());
     assertEquals("", article2_1.getIssue());
     assertEquals("", article2_2.getIssue());
+  }
+
+  @Test
+  public void testMergeAuthors() {
+    assertThrows(IllegalArgumentException.class, () -> article1_1.merge(article1_1));
+    assertThrows(IllegalArgumentException.class, () -> article1_1.merge(article2_1));
+    article1_1.addReference(article1_3);
+    article1_3.addReference(article1_1);
+    article1_2.merge(article1_1);
+    assertEquals(2, article1_2.getAuthors().size());
+    assertTrue(article1_2.getAuthors().contains(author1_1));
+    assertTrue(article1_2.getAuthors().contains(author1_2));
+    assertEquals(2, article1_2.getTags().size());
+    assertTrue(article1_2.getTags().contains(tag1_1));
+    assertTrue(article1_2.getTags().contains(tag1_2));
+    assertFalse(article1_3.getReferences().contains(article1_1));
+    assertTrue(article1_2.getReferences().contains(article1_3));
+    assertTrue(article1_3.getReferences().contains(article1_2));
+  }
+
+  @Test
+  public void testRemoveAuthor() {
+    article1_1.removeAuthor(author1_1);
+    assertFalse(article1_1.getAuthors().contains(author1_1));
+    assertTrue(article1_1.getAuthors().contains(author1_2));
+    assertEquals(1, article1_1.getAuthors().size());
+    assertThrows(IllegalArgumentException.class, () -> article1_1.removeAuthor(author1_1));
+    article1_1.removeAuthor(author1_2);
+    assertFalse(article1_1.getAuthors().contains(author1_2));
+    assertEquals(0, article1_1.getAuthors().size());
+    assertThrows(IllegalArgumentException.class, () -> article1_1.removeAuthor(author2_1));
+  }
+
+  @Test
+  public void testRemoveReference() {
+    assertThrows(IllegalArgumentException.class, () -> article1_1.removeReference(article1_2));
+    assertThrows(IllegalArgumentException.class, () -> article1_1.removeReference(article2_1));
+  }
+
+  @Test
+  public void testRemoveTag() {
+    article1_1.removeTag(tag1_1);
+    assertFalse(article1_1.getTags().contains(tag1_1));
+    assertThrows(IllegalArgumentException.class, () -> article1_1.removeTag(tag1_1));
+    assertThrows(IllegalArgumentException.class, () -> article1_1.removeTag(tag2_1));
+  }
+
+  @Test
+  public void testStatus() {
+    for (ArticleStatus status : ArticleStatus.values()) {
+      article1_1.setStatus(status);
+      assertEquals(status, article1_1.getStatus());
+    }
+    assertThrows(NullPointerException.class, () -> article1_1.setStatus(null));
+  }
+
+  @Test
+  public void testStartSet() {
+    article1_1.setStartSet(true);
+    assertTrue(article1_1.inStartSet());
+    article1_1.setStartSet(false);
+    assertFalse(article1_1.inStartSet());
+  }
+
+  @Test
+  public void testGetByDoi() {
+    assertEquals(article1_1, Article.getByDoi(state1, "10.1000/181"));
+    assertEquals(article1_2, Article.getByDoi(state1, "10.1000/182"));
+    assertEquals(article1_3, Article.getByDoi(state1, "10.1000/183"));
+    assertNull(Article.getByDoi(state1, "10.1000/184"));
+  }
+
+  @Test
+  public void testGetByTitle() {
+    assertEquals(article1_1, Article.getByTitle(state1, "Article1_1"));
+    assertEquals(article1_2, Article.getByTitle(state1, "Article1_2"));
+    assertEquals(article1_3, Article.getByTitle(state1, "Article1_3"));
+    assertNull(Article.getByTitle(state2, "Article1_3"));
+  }
+
+  @Test
+  public void testSerialization() {
+    article1_1.addReference(article1_2);
+    String json = state1.getSerializationProxy().toJson();
+    SnowballState restored = SnowballState.fromJson(json);
+    Article article1 = Article.getByTitle(restored, "Article1_1");
+    Article article2 = Article.getByTitle(restored, "Article1_2");
+    assertTrue(article1.getDoi().equals(article1_1.getDoi()));
+    assertTrue(article1.getIssue().equals(article1_1.getIssue()));
+    assertTrue(article2.getJournal().getName().equals(article1_2.getJournal().getName()));
+    assertTrue(article2.getJournal().getIssn().equals(article1_2.getJournal().getIssn()));
+    assertTrue(article1.getMonth().equals(article1_1.getMonth()));
+    assertTrue(article1.getPages().equals(article1_1.getPages()));
+    assertEquals(article1.inStartSet(), article1_1.inStartSet());
+    assertEquals(article1.getStatus(), article1_1.getStatus());
+    assertTrue(article1.getTitle().equals(article1_1.getTitle()));
+    assertTrue(article1.getVolume().equals(article1_1.getVolume()));
+    assertTrue(article1.getYear().equals(article1_1.getYear()));
+    assertEquals(2, article1.getAuthors().size());
+    assertTrue(article1.getTags().get(0).getName().equals(article1_1.getTags().get(0).getName()));
+    assertEquals(article2, article1.getReferences().get(0));
+    assertEquals(article1, article2.getReferencesTo().get(0));
   }
 }
