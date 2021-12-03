@@ -14,6 +14,7 @@
 
 package se.dansarie.jsnowball.gui;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -162,6 +163,8 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
 
   protected abstract List<E> getEdges(E member);
 
+  protected abstract boolean isSelected(E member);
+
   public Action getLinlogAction() {
     return linlogAction;
   }
@@ -271,6 +274,11 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       Shape sh = no.getShape();
       g2.setColor(getColor(no.getMember()));
       g2.fill(sh);
+      if (isSelected(no.getMember())) {
+        g2.setColor(Color.RED);
+        g2.setStroke(new BasicStroke(3));
+        g2.draw(sh);
+      }
     }
   }
 

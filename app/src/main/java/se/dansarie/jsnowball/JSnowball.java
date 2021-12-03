@@ -131,7 +131,7 @@ public class JSnowball {
       setMemberFilter(m -> m.getStatus() != Article.ArticleStatus.EXCLUDED);
     }
     @Override
-    public ListModel<Article> getListModel() {
+    protected ListModel<Article> getListModel() {
       if (getState() == null) {
         return null;
       }
@@ -139,17 +139,22 @@ public class JSnowball {
     }
 
     @Override
-    public List<Article> getEdges(Article member) {
+    protected List<Article> getEdges(Article member) {
       return member.getReferences();
     }
 
     @Override
-    public Color getColor(Article member) {
+    protected Color getColor(Article member) {
       List<Tag> tags = member.getTags();
       if (tags.size() == 0) {
         return Color.BLACK;
       }
       return new Color(tags.get(0).getColor());
+    }
+
+    @Override
+    protected boolean isSelected(Article member) {
+      return articleList.getSelectedValuesList().contains(member);
     }
   };
 
@@ -159,7 +164,7 @@ public class JSnowball {
           a -> a.getStatus() != Article.ArticleStatus.EXCLUDED));
     }
     @Override
-    public ListModel<Author> getListModel() {
+    protected ListModel<Author> getListModel() {
       if (getState() == null) {
         return null;
       }
@@ -167,7 +172,7 @@ public class JSnowball {
     }
 
     @Override
-    public List<Author> getEdges(Author member) {
+    protected List<Author> getEdges(Author member) {
       ArrayList<Author> edgeAuthors = new ArrayList<>();
       for (Article ar: member.getArticles()) {
         for (Author au : ar.getAuthors()) {
@@ -183,8 +188,13 @@ public class JSnowball {
     }
 
     @Override
-    public Color getColor(Author member) {
+    protected Color getColor(Author member) {
       return Color.BLACK;
+    }
+
+    @Override
+    protected boolean isSelected(Author member) {
+      return authorList.getSelectedValuesList().contains(member);
     }
   };
 
