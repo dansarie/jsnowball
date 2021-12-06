@@ -163,9 +163,11 @@ public class Tag extends SnowballStateMember {
   void restoreFromProxy(SerializationProxy proxy) {
     lock();
     try {
+      getState().pushInhibitUpdates();
       setColor(proxy.color);
       setName(proxy.name);
       setNotes(proxy.notes);
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }

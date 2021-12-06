@@ -160,9 +160,11 @@ public class Journal extends SnowballStateMember {
   void restoreFromProxy(SerializationProxy proxy) {
     lock();
     try {
+      getState().pushInhibitUpdates();
       setIssn(proxy.issn);
       setName(proxy.name);
       setNotes(proxy.notes);
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }

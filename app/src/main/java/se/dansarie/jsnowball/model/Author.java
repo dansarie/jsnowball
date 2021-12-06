@@ -271,11 +271,13 @@ public class Author extends SnowballStateMember {
   void restoreFromProxy(SerializationProxy proxy) {
     lock();
     try {
+      getState().pushInhibitUpdates();
       setFirstName(proxy.firstname);
       setLastName(proxy.lastname);
       setNotes(proxy.notes);
       setOrcId(proxy.orcid);
       setOrgName(proxy.orgname);
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }

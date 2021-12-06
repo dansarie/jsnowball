@@ -61,6 +61,7 @@ public class Article extends SnowballStateMember {
     super(state);
     lock();
     try {
+      getState().pushInhibitUpdates();
       setDoi(r.doi);
       setIssue(r.issue);
       setPages(r.page);
@@ -86,6 +87,7 @@ public class Article extends SnowballStateMember {
         }
       }
       setJournal(getJournal(r.journal, r.issn));
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }
@@ -95,6 +97,7 @@ public class Article extends SnowballStateMember {
     super(state);
     lock();
     try {
+      getState().pushInhibitUpdates();
       setDoi(r.doi);
       setIssue(r.issue);
       setJournal(getJournal(r.journal, r.issn));
@@ -111,6 +114,7 @@ public class Article extends SnowballStateMember {
         }
         addAuthor(au);
       }
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }
@@ -120,6 +124,7 @@ public class Article extends SnowballStateMember {
     super(state);
     lock();
     try {
+      getState().pushInhibitUpdates();
       setMonth(Integer.toString(a.published.getMonthValue()));
       setNotes(a.id);
       setTitle(a.title);
@@ -139,6 +144,7 @@ public class Article extends SnowballStateMember {
         jo.setName("ArXiv");
       }
       setJournal(jo);
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }
@@ -748,6 +754,7 @@ public class Article extends SnowballStateMember {
       List<Author> authors, List<Journal> journals, List<Tag> tags) {
     lock();
     try {
+      getState().pushInhibitUpdates();
       setDoi(proxy.doi);
       setIssue(proxy.issue);
       setMonth(proxy.month);
@@ -770,6 +777,7 @@ public class Article extends SnowballStateMember {
       for (int i : proxy.tags) {
         addTag(tags.get(i));
       }
+      getState().popInhibitUpdates();
     } finally {
       unlock();
     }

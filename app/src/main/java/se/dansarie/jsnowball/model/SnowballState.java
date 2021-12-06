@@ -16,7 +16,9 @@ package se.dansarie.jsnowball.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.List;
 
@@ -32,6 +34,8 @@ public class SnowballState {
   private List<Author> authors = new ArrayList<>();
   private List<Journal> journals = new ArrayList<>();
   private List<Tag> tags = new ArrayList<>();
+  private Set<SnowballStateMember> updatedMembers = new HashSet<>();
+  private int inhibitUpdates = 0;
   private boolean saved = true;
   private ReentrantLock lock = new ReentrantLock();
 
@@ -46,6 +50,7 @@ public class SnowballState {
   private SnowballState(SerializationProxy sp) {
     lock();
     try {
+      pushInhibitUpdates();
       ArrayList<Author> loadedAuthors = new ArrayList<>();
       for (Author.SerializationProxy proxy : sp.authors) {
         Author au = new Author(this);
@@ -77,6 +82,7 @@ public class SnowballState {
         loadedArticles.get(i).restoreFromProxy(sp.articles[i], loadedArticles, loadedAuthors,
             loadedJournals, loadedTags);
       }
+      popInhibitUpdates();
       saved = true;
     } finally {
       unlock();
@@ -95,11 +101,41 @@ public class SnowballState {
     lock.unlock();
   }
 
+  void pushInhibitUpdates() {
+    lock();
+    try {
+      inhibitUpdates += 1;
+    } finally {
+      unlock();
+    }
+  }
+
+  void popInhibitUpdates() {
+    lock();
+    try {
+      inhibitUpdates -= 1;
+      if (inhibitUpdates == 0) {
+        for (SnowballStateMember member : updatedMembers) {
+          fireUpdated(member);
+        }
+        updatedMembers.clear();
+      } else if (inhibitUpdates < 0) {
+        throw new IllegalStateException("Popped more inhibits than pushed!");
+      }
+    } finally {
+      unlock();
+    }
+  }
+
   void fireUpdated(SnowballStateMember updated) {
     lock();
     try {
       Objects.requireNonNull(updated);
       saved = false;
+      if (inhibitUpdates > 0) {
+        updatedMembers.add(updated);
+        return;
+      }
       List<? extends SnowballStateMember> list = null;
       SnowballListModel<? extends SnowballStateMember> listModel = null;
       if (updated instanceof Article) {
