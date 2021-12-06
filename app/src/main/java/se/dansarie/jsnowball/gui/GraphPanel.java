@@ -27,6 +27,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -254,9 +255,12 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   }
 
   @Override
-  public void paintComponent(Graphics gr) {
+  protected void paintComponent(Graphics gr) {
     super.paintComponent(gr);
-    Graphics2D g2 = (Graphics2D)gr;
+    Dimension dim = getSize();
+    BufferedImage bi = new BufferedImage((int)dim.getWidth(), (int)dim.getHeight(),
+        BufferedImage.TYPE_4BYTE_ABGR);
+    Graphics2D g2 = bi.createGraphics();
     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -280,6 +284,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
         g2.draw(sh);
       }
     }
+    gr.drawImage(bi, 0, 0, null);
   }
 
   private void updateSize() {
