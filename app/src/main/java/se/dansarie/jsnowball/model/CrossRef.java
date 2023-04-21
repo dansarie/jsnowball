@@ -238,6 +238,7 @@ public class CrossRef {
   public synchronized static void addCrossRefReference(Article art, CrossRef.Reference ref)
       throws IOException {
     SnowballState state = art.getState();
+    state.pushInhibitUpdates();
     Article a = null;
     if (ref.doi != null) {
       a = Article.getByDoi(state, ref.doi);
@@ -288,6 +289,7 @@ public class CrossRef {
     if (a != null) {
       art.addReference(a);
     }
+    state.popInhibitUpdates();
   }
 
   public static class Author {
