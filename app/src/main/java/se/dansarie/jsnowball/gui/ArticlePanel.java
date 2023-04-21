@@ -124,25 +124,25 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
           }
           int i = 1;
           pm.setMaximum(cr.references.size());
-            for (CrossRef.Reference ref : cr.references) {
-              StringBuilder note = new StringBuilder("Retrieving");
-              if (ref.title != null) {
-                note.append(" \"");
-                note.append(ref.title);
-                note.append("\"");
-              } else if (ref.doi != null) {
-                note.append(" ");
-                note.append(ref.doi);
-              }
-              note.append("...");
-              pm.setNote(note.toString());
-              try {
-                CrossRef.addCrossRefReference(article, ref);
-              } catch (IOException | RuntimeException ex) {
-                LogWindow.getInstance().addThrowable(ex);
-              }
-              pm.setProgress(i++);
+          for (CrossRef.Reference ref : cr.references) {
+            StringBuilder note = new StringBuilder("Retrieving");
+            if (ref.title != null) {
+              note.append(" \"");
+              note.append(ref.title);
+              note.append("\"");
+            } else if (ref.doi != null) {
+              note.append(" ");
+              note.append(ref.doi);
             }
+            note.append("...");
+            pm.setNote(note.toString());
+            try {
+              CrossRef.addCrossRefReference(article, ref);
+            } catch (IOException | RuntimeException ex) {
+              LogWindow.getInstance().addThrowable(ex);
+            }
+            pm.setProgress(i++);
+          }
           return null;
         }
 
