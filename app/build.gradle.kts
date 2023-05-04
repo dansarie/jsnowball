@@ -15,8 +15,8 @@
 plugins {
     application
     jacoco
-    id("org.panteleyev.jpackageplugin") version "1.3.1"
-    id("com.github.nbaztec.coveralls-jacoco") version "1.2.13"
+    id("org.panteleyev.jpackageplugin") version "1.5.2"
+    id("com.github.nbaztec.coveralls-jacoco") version "1.2.15"
 }
 
 repositories {
@@ -24,11 +24,11 @@ repositories {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.2")
-    implementation("com.google.guava:guava:31.0.1-jre")
-    implementation("org.apache.commons:commons-csv:1.9.0")
-    implementation("org.json:json:20210307")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.3")
+    implementation("com.google.guava:guava:31.1-jre")
+    implementation("org.apache.commons:commons-csv:1.10.0")
+    implementation("org.json:json:20230227")
 }
 
 application {
