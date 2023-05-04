@@ -25,8 +25,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URL;
@@ -268,6 +270,30 @@ public class JSnowball {
     @Override
     public void actionPerformed(ActionEvent ev) {
       saveState(false, true);
+    }
+  };
+
+  private Action exportSvgAction = new AbstractAction("Export graph as SVG...") {
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      JFileChooser chooser = new JFileChooser();
+      chooser.setCurrentDirectory(getDirectoryPreference());
+      if (chooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
+        return;
+      }
+      File fi = chooser.getSelectedFile();
+      if (fi == null) {
+        return;
+      }
+      saveDirectoryPreference(fi);
+      try (
+        FileOutputStream fos = new FileOutputStream(fi);
+        OutputStreamWriter osw = new OutputStreamWriter(fos);
+      ) {
+        articleGraph.getSVG(osw);
+      } catch (IOException ex) {
+        LogWindow.getInstance().addThrowable(ex);
+      }
     }
   };
 
@@ -852,6 +878,7 @@ public class JSnowball {
     JMenuItem openprojectitem = new JMenuItem(openProjectAction);
     JMenuItem saveprojectitem = new JMenuItem(saveAction);
     JMenuItem saveasprojectitem = new JMenuItem(saveAsAction);
+    JMenuItem exportsvgitem = new JMenuItem(exportSvgAction);
     JMenuItem exititem = new JMenuItem(exitAction);
 
     createRecentFilesMenu();
@@ -864,6 +891,8 @@ public class JSnowball {
     filemenu.addSeparator();
     filemenu.add(saveprojectitem);
     filemenu.add(saveasprojectitem);
+    filemenu.addSeparator();
+    filemenu.add(exportsvgitem);
     filemenu.addSeparator();
     filemenu.add(exititem);
     menubar.add(filemenu);

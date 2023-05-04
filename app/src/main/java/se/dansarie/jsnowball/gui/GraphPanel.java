@@ -29,6 +29,8 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RectangularShape;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +53,10 @@ import javax.swing.event.AncestorListener;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 
+import org.apache.batik.dom.GenericDOMImplementation;
+import org.apache.batik.svggen.SVGGraphics2D;
+import org.w3c.dom.Document;
+import org.w3c.dom.DOMImplementation;
 import se.dansarie.jsnowball.model.SnowballState;
 
 public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
@@ -275,13 +281,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     updateNodes();
   }
 
-  @Override
-  protected void paintComponent(Graphics gr) {
-    super.paintComponent(gr);
-    Dimension dim = getSize();
-    BufferedImage bi = new BufferedImage((int)dim.getWidth(), (int)dim.getHeight(),
-        BufferedImage.TYPE_4BYTE_ABGR);
-    Graphics2D g2 = bi.createGraphics();
+  private void drawGraph(Graphics2D g2) {
     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -305,6 +305,25 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
         g2.draw(sh);
       }
     }
+  }
+
+  public void getSVG(Writer writer) throws IOException {
+    DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation();
+    String svgNS = "http://www.w3.org/2000/svg";
+    Document document = domImpl.createDocument(svgNS, "svg", null);
+    SVGGraphics2D g2 = new SVGGraphics2D(document);
+    drawGraph(g2);
+    g2.stream(writer);
+  }
+
+  @Override
+  protected void paintComponent(Graphics gr) {
+    super.paintComponent(gr);
+    Dimension dim = getSize();
+    BufferedImage bi = new BufferedImage((int)dim.getWidth(), (int)dim.getHeight(),
+        BufferedImage.TYPE_4BYTE_ABGR);
+    Graphics2D g2 = bi.createGraphics();
+    drawGraph(g2);
     gr.drawImage(bi, 0, 0, null);
   }
 

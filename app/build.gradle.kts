@@ -28,6 +28,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.3")
     implementation("com.google.guava:guava:31.1-jre")
     implementation("org.apache.commons:commons-csv:1.10.0")
+    implementation("org.apache.xmlgraphics:batik-dom:1.16")
+    implementation("org.apache.xmlgraphics:batik-svggen:1.16")
     implementation("org.json:json:20230227")
 }
 
