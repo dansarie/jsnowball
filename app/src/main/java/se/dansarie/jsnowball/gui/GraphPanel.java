@@ -27,6 +27,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.RectangularShape;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -484,7 +485,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     private E member;
     private List<Node<E>> edges = new ArrayList<>();
     private List<Node<E>> edgesTo = new ArrayList<>();
-    private Ellipse2D.Float shape = new Ellipse2D.Float(0, 0, 25, 25);
+    private RectangularShape shape = new Ellipse2D.Float(0, 0, 25, 25);
     float force_x = 0;
     float force_y = 0;
     float previous_force = 0;
@@ -550,27 +551,27 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     }
 
     private float getX() {
-      return shape.x;
+      return (float)shape.getX();
     }
 
     private float getY() {
-      return shape.y;
+      return (float)shape.getY();
     }
 
     private void setX(int x) {
-      shape.x = x;
+      shape.setFrame(x, shape.getY(), shape.getWidth(), shape.getHeight());
     }
 
     private void setY(int y) {
-      shape.y = y;
+      shape.setFrame(shape.getX(), y, shape.getWidth(), shape.getHeight());
     }
 
     private void setX(float x) {
-      shape.x = (int)x;
+      shape.setFrame(x, shape.getY(), shape.getWidth(), shape.getHeight());
     }
 
     private void setY(float y) {
-      shape.y = (int)y;
+      shape.setFrame(shape.getX(), y, shape.getWidth(), shape.getHeight());
     }
 
     @Override
