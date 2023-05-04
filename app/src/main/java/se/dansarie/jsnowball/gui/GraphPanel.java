@@ -110,6 +110,20 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     }
   };
 
+  private Action pauseAction = new AbstractAction("Pause") {
+    {
+      putValue(Action.SELECTED_KEY, false);
+    }
+    @Override
+    public void actionPerformed(ActionEvent ev) {
+      if ((Boolean)getValue(Action.SELECTED_KEY)) {
+        timer.stop();
+      } else {
+        timer.start();
+      }
+    }
+  };
+
   public GraphPanel() {
     GPMouseListener gpm = new GPMouseListener();
     addMouseListener(gpm);
@@ -117,7 +131,9 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     addAncestorListener(new AncestorListener() {
       @Override
       public void ancestorAdded(AncestorEvent ev) {
-        timer.start();
+        if (!((Boolean)pauseAction.getValue(Action.SELECTED_KEY))) {
+          timer.start();
+        }
       }
 
       @Override
@@ -180,6 +196,10 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
 
   public Action getPreventOverlapAction() {
     return preventOverlapAction;
+  }
+
+  public Action getPauseAction() {
+    return pauseAction;
   }
 
   public void setKr(float kr) {

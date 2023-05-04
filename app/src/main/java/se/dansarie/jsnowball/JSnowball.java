@@ -1012,6 +1012,7 @@ public class JSnowball {
     graphOptionsPanel.add(new JCheckBox(gp.getGravityAction()));
     graphOptionsPanel.add(new JCheckBox(gp.getDissuadeHubsAction()));
     graphOptionsPanel.add(new JCheckBox(gp.getPreventOverlapAction()));
+    graphOptionsPanel.add(new JCheckBox(gp.getPauseAction()));
 
     JPanel graphPanel = new JPanel();
     graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
