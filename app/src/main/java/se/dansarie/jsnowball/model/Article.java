@@ -42,6 +42,7 @@ public class Article extends SnowballStateMember {
   private String title = "";
   private String volume = "";
   private String year = "";
+  private String label = "";
 
   private ArrayList<Author> authors = new ArrayList<>();
   private ArrayList<Article> references = new ArrayList<>();
@@ -346,6 +347,15 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  public String getLabel() {
+    lock();
+    try {
+      return label;
+    } finally {
+      unlock();
+    }
+  }
+
   public String getMonth() {
     lock();
     try {
@@ -613,6 +623,16 @@ public class Article extends SnowballStateMember {
     }
   }
 
+  public void setLabel(String label) {
+    lock();
+    try {
+      this.label = Objects.requireNonNullElse(label, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
   public void setMonth(String month) {
     lock();
     try {
@@ -764,6 +784,7 @@ public class Article extends SnowballStateMember {
       setTitle(proxy.title);
       setVolume(proxy.volume);
       setYear(proxy.year);
+      setLabel(proxy.label);
       setNotes(proxy.notes);
       if (proxy.journal >= 0) {
         setJournal(journals.get(proxy.journal));
@@ -798,6 +819,7 @@ public class Article extends SnowballStateMember {
     private final String title;
     private final String volume;
     private final String year;
+    private final String label;
     private final int[] authors;
     private final int journal;
     private final int[] references;
@@ -815,6 +837,7 @@ public class Article extends SnowballStateMember {
       title = json.getString("title");
       volume = json.getString("volume");
       year = json.getString("year");
+      label = json.optString("label", "");
 
       JSONArray au = json.getJSONArray("authors");
       authors = new int[au.length()];
@@ -846,6 +869,7 @@ public class Article extends SnowballStateMember {
       title = art.title;
       volume = art.volume;
       year = art.year;
+      label = art.label;
       SnowballState state = art.getState();
 
       authors = new int[art.authors.size()];
@@ -889,6 +913,7 @@ public class Article extends SnowballStateMember {
       json.put("authors", authors);
       json.put("references", references);
       json.put("tags", tags);
+      json.put("label", label);
       return json;
     }
   }

@@ -17,6 +17,7 @@ package se.dansarie.jsnowball.gui;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -25,6 +26,8 @@ import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.font.FontRenderContext;
+import java.awt.font.GlyphVector;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RectangularShape;
@@ -57,6 +60,8 @@ import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.w3c.dom.Document;
 import org.w3c.dom.DOMImplementation;
+import se.dansarie.jsnowball.model.Article;
+import se.dansarie.jsnowball.model.Author;
 import se.dansarie.jsnowball.model.SnowballState;
 
 public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
@@ -299,6 +304,27 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       Shape sh = no.getShape();
       g2.setColor(getColor(no.getMember()));
       g2.fill(sh);
+      String label = null;
+      E member = no.getMember();
+      if (member instanceof Article) {
+        label = ((Article)member).getLabel();
+      } else if (member instanceof Author) {
+        label = ((Author)member).getLabel();
+      }
+      if (label != null) {
+        Font font = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
+        g2.setFont(font);
+        FontRenderContext frc = g2.getFontRenderContext();
+        GlyphVector gv = font.layoutGlyphVector(frc, label.toCharArray(), 0, label.length(),
+            Font.LAYOUT_LEFT_TO_RIGHT);
+        Rectangle pixelBounds = gv.getPixelBounds(frc, 0, 0);
+        Rectangle2D stringBounds = font.getStringBounds(label, frc);
+        Rectangle nodeBounds = no.getShape().getBounds();
+        g2.setColor(Color.BLACK);
+        int x = (int)(nodeBounds.getCenterX() - stringBounds.getWidth()  / 2);
+        int y = (int)(nodeBounds.getCenterY() + pixelBounds.getHeight() / 2);
+        g2.drawString(label, x, y);
+      }
       if (isSelected(no.getMember())) {
         g2.setColor(Color.RED);
         g2.setStroke(new BasicStroke(3));

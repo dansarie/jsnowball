@@ -71,6 +71,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
   private JTextField volume = new JTextField();
   private JTextField issue = new JTextField();
   private JTextField pages = new JTextField();
+  private JTextField label = new JTextField();
   private JTextArea notes = new JTextArea();
   private JCheckBox startSet = new JCheckBox("In starting set");
   private JList<Tag> tags = new JList<>();
@@ -261,6 +262,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     addComponent("Volume", volume);
     addComponent("Issue", issue);
     addComponent("Pages", pages);
+    addComponent("Label", label);
     addComponent("Notes", notesScrollPane);
     addComponent("Tags", tagsScrollPane);
     addComponent("Outbound references", referencesScrollPane);
@@ -298,6 +300,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
       volume.setText("");
       issue.setText("");
       pages.setText("");
+      label.setText("");
       notes.setText("");
       tags.setModel(new DefaultListModel<>());
       references.setModel(new DefaultListModel<>());
@@ -313,6 +316,7 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
     volume.setText(a.getVolume());
     issue.setText(a.getIssue());
     pages.setText(a.getPages());
+    label.setText(a.getLabel());
     notes.setText(a.getNotes());
     startSet.setSelected(a.inStartSet());
     tags.setModel(a.getTagListModel());
@@ -347,7 +351,10 @@ public class ArticlePanel extends SnowballMemberPanel<Article> implements ListDa
       return s -> a.setPages(s);
     } else if (comp == notes) {
       return s -> a.setNotes(s);
+    } else if (comp == label) {
+      return s -> a.setLabel(s);
     }
+
     throw new IllegalArgumentException("Component not recognized: " + comp.toString());
   }
 

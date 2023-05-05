@@ -28,6 +28,7 @@ public class Author extends SnowballStateMember {
   private String lastname = "";
   private String orgname = "";
   private String orcid = "";
+  private String label = "";
   private String stringrepr = null;
   private List<Article> articles = new ArrayList<>();
 
@@ -73,6 +74,15 @@ public class Author extends SnowballStateMember {
     lock();
     try {
       return firstname;
+    } finally {
+      unlock();
+    }
+  }
+
+  public String getLabel() {
+    lock();
+    try {
+      return label;
     } finally {
       unlock();
     }
@@ -157,6 +167,16 @@ public class Author extends SnowballStateMember {
     try {
       stringrepr = null;
       firstname = Objects.requireNonNullElse(name, "");
+      fireUpdated();
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setLabel(String label) {
+    lock();
+    try {
+      this.label = Objects.requireNonNullElse(label, "");
       fireUpdated();
     } finally {
       unlock();
@@ -273,6 +293,7 @@ public class Author extends SnowballStateMember {
     try {
       getState().pushInhibitUpdates();
       setFirstName(proxy.firstname);
+      setLabel(proxy.label);
       setLastName(proxy.lastname);
       setNotes(proxy.notes);
       setOrcId(proxy.orcid);
@@ -289,6 +310,7 @@ public class Author extends SnowballStateMember {
     private final String notes;
     private final String orcid;
     private final String orgname;
+    private final String label;
 
     SerializationProxy(JSONObject json) throws JSONException {
       firstname = json.getString("firstname");
@@ -296,6 +318,7 @@ public class Author extends SnowballStateMember {
       notes = json.getString("notes");
       orcid = json.getString("orcid");
       orgname = json.getString("orgname");
+      label = json.optString("label", "");
     }
 
     private SerializationProxy(Author au) {
@@ -304,6 +327,7 @@ public class Author extends SnowballStateMember {
       notes = au.getNotes();
       orcid = au.orcid;
       orgname = au.orgname;
+      label = au.label;
     }
 
     JSONObject toJson() {
@@ -313,6 +337,7 @@ public class Author extends SnowballStateMember {
       json.put("notes", notes);
       json.put("orcid", orcid);
       json.put("orgname", orgname);
+      json.put("label", label);
       return json;
     }
   }

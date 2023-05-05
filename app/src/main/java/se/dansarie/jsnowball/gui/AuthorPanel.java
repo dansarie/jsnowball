@@ -34,6 +34,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
   private JTextField lastName = new JTextField();
   private JTextField organizationName = new JTextField();
   private JTextField orcid = new JTextField();
+  private JTextField label = new JTextField();
   private JTextArea notes = new JTextArea();
   private JList<Article> articles = new JList<>();
   private JButton deleteButton = new JButton("Remove author");
@@ -44,6 +45,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
     addComponent("Last name", lastName);
     addComponent("Organization name", organizationName);
     addComponent("ORCID", orcid);
+    addComponent("Label", label);
     addComponent("Notes", new JScrollPane(notes));
     addComponent("Articles", new JScrollPane(articles));
     addComponent("", deleteButton);
@@ -85,6 +87,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
       lastName.setText("");
       organizationName.setText("");
       orcid.setText("");
+      label.setText("");
       notes.setText("");
       articles.setListData(new Article[0]);
       return;
@@ -93,6 +96,7 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
     lastName.setText(a.getLastName());
     organizationName.setText(a.getOrgName());
     orcid.setText(a.getOrcId());
+    label.setText(a.getLabel());
     notes.setText(a.getNotes());
     articles.setListData(a.getArticles().toArray(new Article[0]));
     enableComponents();
@@ -111,7 +115,10 @@ public class AuthorPanel extends SnowballMemberPanel<Author> {
       return s -> a.setOrcId(s);
     } else if (comp == notes) {
       return s -> a.setNotes(s);
+    } else if (comp == label) {
+      return s -> a.setLabel(s);
     }
+
     throw new IllegalArgumentException("Component not recognized: " + comp.toString());
   }
 }
