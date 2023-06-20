@@ -251,7 +251,8 @@ public class Article extends SnowballStateMember {
         return 0;
       }
 
-      List<Article> all = state.getArticles();
+      List<Article> all = state.getArticles().stream()
+          .filter(e -> e.status != ArticleStatus.EXCLUDED).toList();
       Map<Article, Integer> dist = new HashMap<>();
       for (Article a : all) {
         dist.put(a, -1);
@@ -267,8 +268,10 @@ public class Article extends SnowballStateMember {
           if (dist.get(a) != distance) {
             continue;
           }
-          HashSet<Article> neighbors = new HashSet<>(a.getReferences());
-          neighbors.addAll(a.getReferencesTo());
+          HashSet<Article> neighbors = new HashSet<>(a.getReferences().stream()
+              .filter(e -> e.getStatus() != ArticleStatus.EXCLUDED).toList());
+          neighbors.addAll(a.getReferencesTo().stream()
+              .filter(e -> e.getStatus() != ArticleStatus.EXCLUDED).toList());
           for (Article neighbor : neighbors) {
             if (neighbor == this) {
               return distance + 1;
