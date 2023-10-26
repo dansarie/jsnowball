@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Marcus Dansarie
+/* Copyright (c) 2021-2023 Marcus Dansarie
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -17,11 +17,13 @@ package se.dansarie.jsnowball.model;
 import java.util.List;
 import java.util.Objects;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Tag extends SnowballStateMember {
   private String name = "";
   private int color = 0;
+  private TagShape shape = TagShape.CIRCLE;
 
   public Tag(SnowballState state) {
     super(state);
@@ -40,6 +42,15 @@ public class Tag extends SnowballStateMember {
     lock();
     try {
       return name;
+    } finally {
+      unlock();
+    }
+  }
+
+  public TagShape getShape() {
+    lock();
+    try {
+      return shape;
     } finally {
       unlock();
     }
@@ -83,6 +94,16 @@ public class Tag extends SnowballStateMember {
     lock();
     try {
       getState().moveUp(this);
+    } finally {
+      unlock();
+    }
+  }
+
+  public void setShape(TagShape shape) {
+    lock();
+    try {
+      this.shape = Objects.requireNonNull(shape);
+      fireUpdated();
     } finally {
       unlock();
     }
@@ -167,6 +188,7 @@ public class Tag extends SnowballStateMember {
       setColor(proxy.color);
       setName(proxy.name);
       setNotes(proxy.notes);
+      setShape(proxy.shape);
       getState().popInhibitUpdates();
     } finally {
       unlock();
@@ -177,17 +199,26 @@ public class Tag extends SnowballStateMember {
     private final String name;
     private final String notes;
     private final int color;
+    private final TagShape shape;
 
     SerializationProxy(JSONObject json) {
       name = json.getString("name");
       notes = json.getString("notes");
       color = json.getInt("color");
+      TagShape sh = TagShape.CIRCLE;
+      try {
+        sh = TagShape.valueOf(json.getString("shape"));
+      } catch (JSONException ex) {
+        /* Ignore. */
+      }
+      shape = sh;
     }
 
     private SerializationProxy(Tag ta) {
       color = ta.color;
       name = ta.name;
       notes = ta.getNotes();
+      shape = ta.shape;
     }
 
     JSONObject toJson() {
@@ -195,7 +226,12 @@ public class Tag extends SnowballStateMember {
       json.put("name", name);
       json.put("notes", notes);
       json.put("color", color);
+      json.put("shape", shape.toString());
       return json;
     }
+  }
+
+  public static enum TagShape {
+    CIRCLE, SQUARE, RHOMBUS
   }
 }

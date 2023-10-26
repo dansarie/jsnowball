@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Marcus Dansarie
+/* Copyright (c) 2021-2023 Marcus Dansarie
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -188,6 +188,8 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
 
   protected abstract Color getColor(E member);
 
+  protected abstract RectangularShape getShape(E member);
+
   protected abstract ListModel<E> getListModel();
 
   protected abstract List<E> getEdges(E member);
@@ -258,7 +260,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       }
       Node<E> node = memberMap.get(member);
       if (node == null) {
-        node = new Node<>(member);
+        node = new Node<>(this, member);
         node.setX(i % 10 * 30);
         node.setY(i / 10 * 30);
         memberMap.put(member, node);
@@ -442,7 +444,7 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     float globalSwing = 0;
     float globalTraction = 0;
 
-    Node<E> virtualCenter = new Node<>(null);
+    Node<E> virtualCenter = new Node<>(this, null);
     virtualCenter.setX(centerx / graph.size());
     virtualCenter.setY(centery / graph.size());
     for (Node<E> n1 : graph) {
@@ -527,15 +529,18 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
   }
 
   private static class Node<E> {
+    private GraphPanel parent;
     private E member;
     private List<Node<E>> edges = new ArrayList<>();
     private List<Node<E>> edgesTo = new ArrayList<>();
-    private RectangularShape shape = new Ellipse2D.Float(0, 0, 25, 25);
+    float pos_x = 0;
+    float pos_y = 0;
     float force_x = 0;
     float force_y = 0;
     float previous_force = 0;
 
-    private Node(E member) {
+    private Node(GraphPanel parent, E member) {
+      this.parent = parent;
       this.member = member;
     }
 
@@ -547,12 +552,8 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       return Collections.unmodifiableList(new ArrayList<>(edges));
     }
 
-    private Shape getShape() {
-      return shape;
-    }
-
     private float getShapeSize() {
-      Rectangle2D bounds = shape.getBounds2D();
+      Rectangle2D bounds = parent.getShape(member).getBounds2D();
       return (float)Math.max(bounds.getHeight(), bounds.getWidth());
     }
 
@@ -587,6 +588,12 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
       return edgesTo.size();
     }
 
+    private RectangularShape getShape() {
+      RectangularShape shape = parent.getShape(member);
+      shape.setFrame(pos_x, pos_y, shape.getWidth(), shape.getHeight());
+      return shape;
+    }
+
     private float getSwing() {
       return (float)Math.abs(Math.hypot(force_x, force_y) - previous_force);
     }
@@ -596,27 +603,19 @@ public abstract class GraphPanel<E> extends JPanel implements ListDataListener {
     }
 
     private float getX() {
-      return (float)shape.getX();
+      return pos_x;
     }
 
     private float getY() {
-      return (float)shape.getY();
-    }
-
-    private void setX(int x) {
-      shape.setFrame(x, shape.getY(), shape.getWidth(), shape.getHeight());
-    }
-
-    private void setY(int y) {
-      shape.setFrame(shape.getX(), y, shape.getWidth(), shape.getHeight());
+      return pos_y;
     }
 
     private void setX(float x) {
-      shape.setFrame(x, shape.getY(), shape.getWidth(), shape.getHeight());
+      pos_x = x;
     }
 
     private void setY(float y) {
-      shape.setFrame(shape.getX(), y, shape.getWidth(), shape.getHeight());
+      pos_y = y;
     }
 
     @Override

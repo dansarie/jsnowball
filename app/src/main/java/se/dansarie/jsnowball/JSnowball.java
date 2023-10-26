@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Marcus Dansarie
+/* Copyright (c) 2021-2023 Marcus Dansarie
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,6 +24,9 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.RectangularShape;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -89,6 +92,7 @@ import se.dansarie.jsnowball.gui.JournalPanel;
 import se.dansarie.jsnowball.gui.LogWindow;
 import se.dansarie.jsnowball.gui.ScopusReferenceImportAction;
 import se.dansarie.jsnowball.gui.TagPanel;
+import se.dansarie.jsnowball.gui.RhombusShape;
 import se.dansarie.jsnowball.model.Article;
 import se.dansarie.jsnowball.model.Arxiv;
 import se.dansarie.jsnowball.model.Author;
@@ -155,6 +159,20 @@ public class JSnowball {
     }
 
     @Override
+    protected RectangularShape getShape(Article member) {
+      List<Tag> tags = member.getTags();
+      if (tags.size() == 0) {
+        return new Ellipse2D.Float(0, 0, 25, 25);
+      }
+      switch (tags.get(0).getShape()) {
+        case CIRCLE:  return new Ellipse2D.Float(0, 0, 25, 25);
+        case SQUARE:  return new Rectangle2D.Float(0, 0, 25, 25);
+        case RHOMBUS: return new RhombusShape(30);
+        default: return new Ellipse2D.Float(0, 0, 25, 25);
+      }
+    }
+
+    @Override
     protected boolean isSelected(Article member) {
       return articleList.getSelectedValuesList().contains(member);
     }
@@ -194,6 +212,10 @@ public class JSnowball {
       return Color.BLACK;
     }
 
+    @Override
+    protected RectangularShape getShape(Author member) {
+      return new Ellipse2D.Float(0, 0, 25, 25);
+    }
     @Override
     protected boolean isSelected(Author member) {
       return authorList.getSelectedValuesList().contains(member);

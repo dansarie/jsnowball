@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Marcus Dansarie
+/* Copyright (c) 2021-2023 Marcus Dansarie
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -30,11 +31,13 @@ import javax.swing.JTextField;
 import javax.swing.text.JTextComponent;
 
 import se.dansarie.jsnowball.model.Tag;
+import se.dansarie.jsnowball.model.Tag.TagShape;
 
 public class TagPanel extends SnowballMemberPanel<Tag> {
 
   private JTextField name = new JTextField();
   private JTextArea notes = new JTextArea();
+  private JComboBox shapeBox = new JComboBox(new String[] {"Circle", "Square", "Rhombus"});
   private JButton deleteButton = new JButton("Remove tag");
   private JButton mergeButton = new JButton("Merge tags");
   private JButton colorButton;
@@ -76,6 +79,7 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
 
     addComponent("Name", name);
     addComponent("Notes", new JScrollPane(notes));
+    addComponent("Shape", shapeBox);
     addComponent("Color", colorButton);
     addComponent("", upButton);
     addComponent("", downButton);
@@ -83,6 +87,15 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
     addComponent("", mergeButton);
 
     disableComponents();
+
+    shapeBox.addActionListener(ev -> {
+      switch (shapeBox.getSelectedIndex()) {
+        case 0: getItem().setShape(TagShape.CIRCLE);  break;
+        case 1: getItem().setShape(TagShape.SQUARE);  break;
+        case 2: getItem().setShape(TagShape.RHOMBUS); break;
+        default: throw new RuntimeException();
+      }
+    });
 
     deleteButton.addActionListener(ev -> {
       if (JOptionPane.showConfirmDialog(deleteButton, "Do you really wish to delete this tag?",
@@ -117,12 +130,19 @@ public class TagPanel extends SnowballMemberPanel<Tag> {
       disableComponents();
       name.setText("");
       notes.setText("");
+      shapeBox.setSelectedIndex(0);
       colorButton.setBackground(Color.BLACK);
       return;
     }
     name.setText(ta.getName());
     notes.setText(ta.getNotes());
     colorButton.setBackground(new Color(ta.getColor()));
+    switch (ta.getShape()) {
+      case CIRCLE:  shapeBox.setSelectedIndex(0); break;
+      case SQUARE:  shapeBox.setSelectedIndex(1); break;
+      case RHOMBUS: shapeBox.setSelectedIndex(2); break;
+      default: throw new RuntimeException();
+    }
     enableComponents();
   }
 
